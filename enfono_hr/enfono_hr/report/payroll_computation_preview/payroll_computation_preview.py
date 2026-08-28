@@ -18,9 +18,8 @@ from frappe.utils import cint, flt, getdate, today
 
 from enfono_hr.hr_report_utils import employee_conditions
 from enfono_hr.payroll_rules import (
-	FINE_PER_OCCURRENCE,
-	FREE_OCCURRENCES_PER_MONTH,
 	compute_employee_payroll,
+	get_settings,
 	month_bounds,
 )
 from enfono_hr.enfono_hr.report.monthly_attendance_sheet_detail.monthly_attendance_sheet_detail import (
@@ -37,19 +36,54 @@ def execute(filters=None):
 
 
 def get_message(year, month):
+	"""Banner stating the live policy, so nobody reads the numbers out of context."""
 	start, end = month_bounds(year, month)
-	return _(
-		"<b>Dry run — nothing is written.</b> Figures cover {0} to {1}. "
-		"Grace period {2} minutes, {3} free occurrence-days per month, "
-		"then ₹{4} per day. Reconcile a known-good month here before these "
-		"components are wired into Salary Slip."
-	).format(
-		frappe.format(start, "Date"),
-		frappe.format(end, "Date"),
-		15,
-		FREE_OCCURRENCES_PER_MONTH,
-		cint(FINE_PER_OCCURRENCE),
+	settings = get_settings()
+
+	parts = [
+		_("<b>Dry run — nothing is written to any Salary Slip.</b>"),
+		_("Period: ") + frappe.format(start, "Date") + " to " + frappe.format(end, "Date") + ".",
+	]
+
+	if cint(settings.enable_late_early_fines):
+		parts.append(
+			_("Grace ")
+			+ str(cint(settings.grace_minutes))
+			+ _(" min, ")
+			+ str(cint(settings.free_occurrences_per_month))
+			+ _(" free occurrence days, then ")
+			+ frappe.format(flt(settings.fine_per_occurrence), "Currency")
+			+ _(" per day.")
+		)
+	else:
+		parts.append(_("Late/early fines are switched off."))
+
+	if cint(settings.enable_attendance_penalties):
+		parts.append(_("Missing checkout: ") + describe_penalty(settings, "missing_checkout"))
+		free_checkouts = cint(settings.missing_checkout_free_days_per_month)
+		if free_checkouts:
+			parts.append(_("First ") + str(free_checkouts) + _(" missing check-outs each month are free."))
+	else:
+		parts.append(_("Attendance penalties are switched off."))
+
+	parts.append(
+		_("Change any of this in <b>Enfono HR Settings</b>, then re-run this report.")
 	)
+
+	return " ".join(parts)
+
+
+def describe_penalty(settings, prefix: str) -> str:
+	"""Human phrasing of one penalty setting, for the banner."""
+	penalty_type = settings.get(prefix + "_penalty_type") or "None"
+
+	if penalty_type == "Days of Salary":
+		return str(flt(settings.get(prefix + "_penalty_days"))) + _(" day(s) of salary each")
+
+	if penalty_type == "Fixed Amount":
+		return frappe.format(flt(settings.get(prefix + "_penalty_amount")), "Currency") + _(" each")
+
+	return _("not charged")
 
 
 def get_columns():
@@ -89,6 +123,7 @@ def get_columns():
 		col("Unapproved Absent", "unapproved_absent_days", "Int", 145),
 		col("Unapproved Half Day", "unapproved_half_days", "Int", 160),
 		col("Missing Checkout", "missing_checkout_days", "Int", 140),
+		col("Chargeable Checkouts", "chargeable_checkout_days", "Int", 155),
 		col("Penalty Days (Raw)", "raw_penalty_days", "Float", 145),
 		col("Penalty Days", "penalty_days", "Float", 115),
 		col("Capped", "penalty_days_capped", "Check", 80),

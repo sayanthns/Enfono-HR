@@ -1,0 +1,349 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-08-28 17:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_late_early",
+  "enable_late_early_fines",
+  "grace_minutes",
+  "free_occurrences_per_month",
+  "column_break_late_early",
+  "fine_per_occurrence",
+  "min_working_hours_for_fine",
+  "section_penalties",
+  "enable_attendance_penalties",
+  "html_absent",
+  "unapproved_absent_penalty_type",
+  "unapproved_absent_penalty_days",
+  "unapproved_absent_penalty_amount",
+  "html_half_day",
+  "unapproved_half_day_penalty_type",
+  "unapproved_half_day_penalty_days",
+  "unapproved_half_day_penalty_amount",
+  "html_checkout",
+  "missing_checkout_penalty_type",
+  "missing_checkout_penalty_days",
+  "missing_checkout_penalty_amount",
+  "missing_checkout_free_days_per_month",
+  "section_limits",
+  "cap_penalty_at_payable_days",
+  "max_penalty_days_per_month",
+  "column_break_limits",
+  "floor_net_salary_at_zero",
+  "max_total_deduction_percent",
+  "section_overtime",
+  "enable_overtime",
+  "ot_rate_days_per_month",
+  "ot_rate_hours_per_day",
+  "column_break_overtime",
+  "pay_extra_day_for_weekly_off",
+  "weekly_off_day",
+  "section_daily_wage",
+  "default_daily_wage_rate",
+  "column_break_daily_wage",
+  "default_sunday_wage_rate"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_late_early",
+   "fieldtype": "Section Break",
+   "label": "Late Entry & Early Exit Fines"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_late_early_fines",
+   "fieldtype": "Check",
+   "label": "Enable Late Entry / Early Exit Fines"
+  },
+  {
+   "default": "15",
+   "depends_on": "enable_late_early_fines",
+   "description": "Minutes an employee may be late, or leave early, before the day counts as an occurrence.",
+   "fieldname": "grace_minutes",
+   "fieldtype": "Int",
+   "label": "Grace Period (Minutes)"
+  },
+  {
+   "default": "3",
+   "depends_on": "enable_late_early_fines",
+   "description": "Occurrence days allowed each month before any fine applies. A day counts once even if the employee was both late and left early.",
+   "fieldname": "free_occurrences_per_month",
+   "fieldtype": "Int",
+   "label": "Free Occurrence Days Per Month"
+  },
+  {
+   "fieldname": "column_break_late_early",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "100",
+   "depends_on": "enable_late_early_fines",
+   "description": "Charged for each unapproved occurrence day beyond the free allowance.",
+   "fieldname": "fine_per_occurrence",
+   "fieldtype": "Currency",
+   "label": "Fine Per Occurrence Day"
+  },
+  {
+   "default": "0.25",
+   "depends_on": "enable_late_early_fines",
+   "description": "Attendance below this many working hours is treated as a logging artefact (a double tap on the check-in app) and never fined.",
+   "fieldname": "min_working_hours_for_fine",
+   "fieldtype": "Float",
+   "label": "Minimum Working Hours To Fine",
+   "precision": "2"
+  },
+  {
+   "description": "These are charged <b>in addition</b> to the loss of pay ERPNext already applies for an absent or half day.",
+   "fieldname": "section_penalties",
+   "fieldtype": "Section Break",
+   "label": "Attendance Penalties"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_attendance_penalties",
+   "fieldtype": "Check",
+   "label": "Enable Attendance Penalties"
+  },
+  {
+   "fieldname": "html_absent",
+   "fieldtype": "HTML",
+   "label": "Unapproved Absence",
+   "options": "<h5 style='margin-bottom:0'>Unapproved Full-Day Absence</h5><p class='text-muted small'>An absent day with no approved leave behind it. ERPNext already deducts one day; this is the extra charge on top.</p>"
+  },
+  {
+   "default": "Days of Salary",
+   "depends_on": "enable_attendance_penalties",
+   "fieldname": "unapproved_absent_penalty_type",
+   "fieldtype": "Select",
+   "label": "Penalty Type",
+   "options": "None\nDays of Salary\nFixed Amount"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.enable_attendance_penalties && doc.unapproved_absent_penalty_type=='Days of Salary'",
+   "fieldname": "unapproved_absent_penalty_days",
+   "fieldtype": "Float",
+   "label": "Penalty Days",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_attendance_penalties && doc.unapproved_absent_penalty_type=='Fixed Amount'",
+   "fieldname": "unapproved_absent_penalty_amount",
+   "fieldtype": "Currency",
+   "label": "Penalty Amount"
+  },
+  {
+   "fieldname": "html_half_day",
+   "fieldtype": "HTML",
+   "label": "Unapproved Half Day",
+   "options": "<h5 style='margin-bottom:0'>Unapproved / Rejected Half Day</h5><p class='text-muted small'>A half day with no approved half-day leave. ERPNext already deducts half a day; the default here charges the other half so the day costs full pay.</p>"
+  },
+  {
+   "default": "Days of Salary",
+   "depends_on": "enable_attendance_penalties",
+   "fieldname": "unapproved_half_day_penalty_type",
+   "fieldtype": "Select",
+   "label": "Penalty Type",
+   "options": "None\nDays of Salary\nFixed Amount"
+  },
+  {
+   "default": "0.5",
+   "depends_on": "eval:doc.enable_attendance_penalties && doc.unapproved_half_day_penalty_type=='Days of Salary'",
+   "fieldname": "unapproved_half_day_penalty_days",
+   "fieldtype": "Float",
+   "label": "Penalty Days",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_attendance_penalties && doc.unapproved_half_day_penalty_type=='Fixed Amount'",
+   "fieldname": "unapproved_half_day_penalty_amount",
+   "fieldtype": "Currency",
+   "label": "Penalty Amount"
+  },
+  {
+   "fieldname": "html_checkout",
+   "fieldtype": "HTML",
+   "label": "Missing Checkout",
+   "options": "<h5 style='margin-bottom:0'>Checkout Not Marked</h5><p class='text-muted small'>A day the employee checked in, worked, but never checked out, with no half-day request. <b>Set this carefully.</b> Missing check-outs are common: in July 2026, 51 of 56 employees had at least one. Charging a full day per occurrence removed about a third of total payroll in the dry run. Consider a small fixed amount, or a free allowance below, rather than a full day.</p>"
+  },
+  {
+   "default": "Days of Salary",
+   "depends_on": "enable_attendance_penalties",
+   "fieldname": "missing_checkout_penalty_type",
+   "fieldtype": "Select",
+   "label": "Penalty Type",
+   "options": "None\nDays of Salary\nFixed Amount"
+  },
+  {
+   "default": "1",
+   "depends_on": "eval:doc.enable_attendance_penalties && doc.missing_checkout_penalty_type=='Days of Salary'",
+   "fieldname": "missing_checkout_penalty_days",
+   "fieldtype": "Float",
+   "label": "Penalty Days",
+   "precision": "2"
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.enable_attendance_penalties && doc.missing_checkout_penalty_type=='Fixed Amount'",
+   "fieldname": "missing_checkout_penalty_amount",
+   "fieldtype": "Currency",
+   "label": "Penalty Amount"
+  },
+  {
+   "default": "0",
+   "depends_on": "enable_attendance_penalties",
+   "description": "Missing check-outs allowed each month before any penalty applies.",
+   "fieldname": "missing_checkout_free_days_per_month",
+   "fieldtype": "Int",
+   "label": "Free Missing Checkouts Per Month"
+  },
+  {
+   "description": "Guard rails that stop a rule from taking more than a month can pay. Anything they hold back is reported on the Payroll Computation Preview rather than silently dropped.",
+   "fieldname": "section_limits",
+   "fieldtype": "Section Break",
+   "label": "Safety Limits"
+  },
+  {
+   "default": "1",
+   "description": "An employee can never lose more days than they were paid for.",
+   "fieldname": "cap_penalty_at_payable_days",
+   "fieldtype": "Check",
+   "label": "Cap Penalty Days At Payable Days"
+  },
+  {
+   "default": "0",
+   "description": "A further ceiling on penalty days. Leave at 0 for no additional limit.",
+   "fieldname": "max_penalty_days_per_month",
+   "fieldtype": "Float",
+   "label": "Maximum Penalty Days Per Month",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_limits",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "floor_net_salary_at_zero",
+   "fieldtype": "Check",
+   "label": "Never Allow a Negative Net Salary"
+  },
+  {
+   "default": "0",
+   "description": "Caps every deduction combined at this share of gross pay. Leave at 0 for no limit.",
+   "fieldname": "max_total_deduction_percent",
+   "fieldtype": "Percent",
+   "label": "Maximum Total Deduction (% of Gross)"
+  },
+  {
+   "fieldname": "section_overtime",
+   "fieldtype": "Section Break",
+   "label": "Overtime"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_overtime",
+   "fieldtype": "Check",
+   "label": "Enable Overtime"
+  },
+  {
+   "default": "31",
+   "depends_on": "enable_overtime",
+   "description": "Hourly rate = Base \u00f7 this \u00f7 hours per day. The agreed basis is a fixed 31 and 8.",
+   "fieldname": "ot_rate_days_per_month",
+   "fieldtype": "Int",
+   "label": "Rate Divisor \u2014 Days Per Month"
+  },
+  {
+   "default": "8",
+   "depends_on": "enable_overtime",
+   "fieldname": "ot_rate_hours_per_day",
+   "fieldtype": "Float",
+   "label": "Rate Divisor \u2014 Hours Per Day",
+   "precision": "2"
+  },
+  {
+   "fieldname": "column_break_overtime",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "depends_on": "enable_overtime",
+   "fieldname": "pay_extra_day_for_weekly_off",
+   "fieldtype": "Check",
+   "label": "Pay an Extra Day for Working the Weekly Off"
+  },
+  {
+   "default": "Sunday",
+   "depends_on": "enable_overtime",
+   "fieldname": "weekly_off_day",
+   "fieldtype": "Select",
+   "label": "Weekly Off Day",
+   "options": "Sunday\nMonday\nTuesday\nWednesday\nThursday\nFriday\nSaturday"
+  },
+  {
+   "description": "Applied to employees whose Wage Type is <b>Daily Wage</b> and who have no rate of their own.",
+   "fieldname": "section_daily_wage",
+   "fieldtype": "Section Break",
+   "label": "Daily Wage Defaults"
+  },
+  {
+   "default": "300",
+   "fieldname": "default_daily_wage_rate",
+   "fieldtype": "Currency",
+   "label": "Default Daily Wage Rate"
+  },
+  {
+   "fieldname": "column_break_daily_wage",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "400",
+   "fieldname": "default_sunday_wage_rate",
+   "fieldtype": "Currency",
+   "label": "Default Weekly-Off Wage Rate"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-28 17:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Enfono HR",
+ "name": "Enfono HR Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "HR User"
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -31,45 +31,113 @@ import calendar
 import frappe
 from frappe.utils import cint, flt, get_datetime, get_first_day, get_last_day, getdate
 
-# --- Client-specified constants -------------------------------------------------
+# --- Defaults --------------------------------------------------------------------
+#
+# These are the values from the client's spec. They are FALLBACKS ONLY: the live
+# figures come from the "Enfono HR Settings" singleton, so HR can tune policy --
+# especially the missing-checkout penalty -- without a code change. The constants
+# stay here so the module still behaves sensibly if the singleton is missing, and
+# so the shipped defaults are readable in one place.
 
-#: Minutes of lateness or early departure tolerated before a day counts.
-GRACE_MINUTES = 15
+DEFAULTS = {
+	"enable_late_early_fines": 1,
+	"grace_minutes": 15,
+	"free_occurrences_per_month": 3,
+	"fine_per_occurrence": 100.0,
+	# Attendance below this many hours is a logging artefact, not a day worked.
+	# Live data has an employee who logged OUT then IN two seconds apart, marked
+	# Present with both late_entry and early_exit set. Fining a double tap would
+	# be indefensible.
+	"min_working_hours_for_fine": 0.25,
+	"enable_attendance_penalties": 1,
+	"unapproved_absent_penalty_type": "Days of Salary",
+	"unapproved_absent_penalty_days": 1.0,
+	"unapproved_absent_penalty_amount": 0.0,
+	"unapproved_half_day_penalty_type": "Days of Salary",
+	"unapproved_half_day_penalty_days": 0.5,
+	"unapproved_half_day_penalty_amount": 0.0,
+	"missing_checkout_penalty_type": "Days of Salary",
+	"missing_checkout_penalty_days": 1.0,
+	"missing_checkout_penalty_amount": 0.0,
+	"missing_checkout_free_days_per_month": 0,
+	"cap_penalty_at_payable_days": 1,
+	"max_penalty_days_per_month": 0.0,
+	"floor_net_salary_at_zero": 1,
+	"max_total_deduction_percent": 0.0,
+	"enable_overtime": 1,
+	# The spec gives two OT formulas that only agree at 31 days and an 8-hour paid
+	# shift. The client confirmed this fixed basis.
+	"ot_rate_days_per_month": 31,
+	"ot_rate_hours_per_day": 8.0,
+	"pay_extra_day_for_weekly_off": 1,
+	"weekly_off_day": "Sunday",
+	"default_daily_wage_rate": 300.0,
+	"default_sunday_wage_rate": 400.0,
+}
 
-#: Occurrence-days per month allowed before the flat fine starts.
-FREE_OCCURRENCES_PER_MONTH = 3
+#: MariaDB DAYOFWEEK(): Sunday is 1.
+WEEKDAY_NUMBERS = {
+	"Sunday": 1,
+	"Monday": 2,
+	"Tuesday": 3,
+	"Wednesday": 4,
+	"Thursday": 5,
+	"Friday": 6,
+	"Saturday": 7,
+}
 
-#: Flat fine per occurrence-day beyond the monthly allowance.
-FINE_PER_OCCURRENCE = 100.0
 
-#: Divisors for the hourly rate. The spec gives two formulas that only agree at
-#: 31 days and an 8-hour paid shift; the client confirmed this fixed basis, so a
-#: 12-hour driver and an 8-hour office worker earn the same hourly OT rate.
-RATE_DAYS_PER_MONTH = 31
-RATE_HOURS_PER_DAY = 8
+def get_settings():
+	"""Live payroll settings, falling back to the shipped defaults.
 
-#: Attendance below this many working hours is treated as a logging artefact
-#: rather than a real day, and never attracts a late/early fine.
-#:
-#: This is not hypothetical. Live data has an employee who logged OUT and then IN
-#: two seconds apart -- ``working_hours`` 0.0, marked Present, with HRMS setting
-#: both ``late_entry`` and ``early_exit``. Fining a double tap INR 100 would be
-#: indefensible, and these days are already caught by the missing-checkout rule.
-MIN_WORKING_HOURS_FOR_FINE = 0.25
+	Returns a plain dict so callers can pass it around without holding a document,
+	and so a missing singleton degrades to the spec defaults rather than raising
+	in the middle of a payroll run.
+	"""
+	values = dict(DEFAULTS)
 
-#: Days of salary charged for a Present day with no genuine checkout.
-#:
-#: The spec says one full day. Left at 1.0 against this site's real data that is
-#: ruinous rather than corrective: 51 of 56 employees missed a checkout in July
-#: 2026, and the literal rule wiped out roughly a third of total payroll and sent
-#: two people negative. Missing checkouts here are an endemic logging habit, not
-#: 51 individual disciplinary cases.
-#:
-#: This is deliberately a named constant, currently at the spec's 1.0, so the
-#: client can dial it down after seeing the dry run rather than discovering the
-#: effect on a payslip. Whatever value is agreed, the per-employee ceiling below
-#: still applies.
-MISSING_CHECKOUT_PENALTY_DAYS = 1.0
+	try:
+		doc = frappe.get_cached_doc("Enfono HR Settings")
+	except Exception:
+		return frappe._dict(values)
+
+	for key in DEFAULTS:
+		value = doc.get(key)
+		# A blank Select or an unset field should not override a sane default;
+		# a deliberate 0 on a numeric field should.
+		if value not in (None, ""):
+			values[key] = value
+
+	return frappe._dict(values)
+
+
+def resolve_penalty(settings, prefix: str, count: float, daily_rate: float) -> float:
+	"""Charge for ``count`` occurrences of one penalty kind, in rupees.
+
+	Handles both shapes HR can choose: a number of days of salary, or a flat
+	amount per occurrence. Returns money, not days, so the two are comparable.
+	"""
+	penalty_type = settings.get(prefix + "_penalty_type") or "None"
+
+	if penalty_type == "Days of Salary":
+		return flt(count) * flt(settings.get(prefix + "_penalty_days")) * flt(daily_rate)
+
+	if penalty_type == "Fixed Amount":
+		return flt(count) * flt(settings.get(prefix + "_penalty_amount"))
+
+	return 0.0
+
+
+def penalty_days_equivalent(settings, prefix: str, count: float) -> float:
+	"""Days of salary a penalty represents, for the payable-days ceiling.
+
+	A fixed-amount penalty contributes no days, so it is not constrained by the
+	day ceiling -- the total-deduction and negative-salary guards still apply.
+	"""
+	if (settings.get(prefix + "_penalty_type") or "None") != "Days of Salary":
+		return 0.0
+
+	return flt(count) * flt(settings.get(prefix + "_penalty_days"))
 
 
 # --- Shift helpers --------------------------------------------------------------
@@ -129,13 +197,18 @@ def get_monthly_base_salary(employee: str, on_date) -> float:
 	return flt(base)
 
 
-def hourly_rate_from_base(base: float) -> float:
-	"""Hourly rate on the client-confirmed ``base / 31 / 8`` basis."""
-	return flt(base) / RATE_DAYS_PER_MONTH / RATE_HOURS_PER_DAY
+def hourly_rate_from_base(base: float, settings=None) -> float:
+	"""Hourly rate. Divisors come from settings; the agreed basis is 31 and 8."""
+	settings = settings or get_settings()
+	days = cint(settings.ot_rate_days_per_month) or DEFAULTS["ot_rate_days_per_month"]
+	hours = flt(settings.ot_rate_hours_per_day) or DEFAULTS["ot_rate_hours_per_day"]
+	return flt(base) / days / hours
 
 
-def daily_rate_from_base(base: float) -> float:
-	return flt(base) / RATE_DAYS_PER_MONTH
+def daily_rate_from_base(base: float, settings=None) -> float:
+	settings = settings or get_settings()
+	days = cint(settings.ot_rate_days_per_month) or DEFAULTS["ot_rate_days_per_month"]
+	return flt(base) / days
 
 
 def month_bounds(year: int, month: int) -> tuple:
@@ -146,7 +219,7 @@ def month_bounds(year: int, month: int) -> tuple:
 # --- Late entry / early exit ----------------------------------------------------
 
 
-def get_occurrences(employee: str, start, end, grace: int = GRACE_MINUTES) -> list[dict]:
+def get_occurrences(employee: str, start, end, settings=None) -> list[dict]:
 	"""Late-entry and early-exit occurrences for one employee in a period.
 
 	Returns one entry per (date, type). Days that look like logging artefacts, and
@@ -176,11 +249,15 @@ def get_occurrences(employee: str, start, end, grace: int = GRACE_MINUTES) -> li
 		as_dict=True,
 	)
 
+	settings = settings or get_settings()
+	grace = cint(settings.grace_minutes)
+	min_hours = flt(settings.min_working_hours_for_fine)
+
 	auto_checkout_times = get_auto_checkout_times(employee, start, end)
 	occurrences = []
 
 	for row in rows:
-		if not row.shift or flt(row.working_hours) < MIN_WORKING_HOURS_FOR_FINE:
+		if not row.shift or flt(row.working_hours) < min_hours:
 			continue
 
 		if row.in_time:
@@ -243,7 +320,7 @@ def get_approved_requests(employee: str, start, end) -> dict:
 	return {(row.request_date, row.request_type): row for row in rows}
 
 
-def compute_late_early_charges(employee: str, start, end, base: float) -> dict:
+def compute_late_early_charges(employee: str, start, end, base: float, settings=None) -> dict:
 	"""Flat fines and hourly deductions for one employee in one payroll month.
 
 	The allowance is three *days*, not three occurrences: a day on which someone
@@ -253,7 +330,20 @@ def compute_late_early_charges(employee: str, start, end, base: float) -> dict:
 	Approved days are excluded from the allowance count entirely — they are
 	charged hourly instead, so an approval must not consume someone's free days.
 	"""
-	occurrences = get_occurrences(employee, start, end)
+	settings = settings or get_settings()
+
+	if not cint(settings.enable_late_early_fines):
+		return {
+			"occurrences": [],
+			"occurrence_days": 0,
+			"approved_days": 0,
+			"free_days_used": 0,
+			"fined_days": 0,
+			"fine_amount": 0.0,
+			"hourly_deduction": 0.0,
+		}
+
+	occurrences = get_occurrences(employee, start, end, settings)
 	approved = get_approved_requests(employee, start, end)
 
 	hourly_deduction = 0.0
@@ -265,21 +355,22 @@ def compute_late_early_charges(employee: str, start, end, base: float) -> dict:
 		if key in approved:
 			approved_days.add(occurrence["date"])
 			hourly_deduction += flt(approved[key].deduction_amount) or flt(
-				hourly_rate_from_base(base) * (occurrence["minutes"] / 60.0)
+				hourly_rate_from_base(base, settings) * (occurrence["minutes"] / 60.0)
 			)
 		else:
 			unapproved_by_day.setdefault(occurrence["date"], []).append(occurrence)
 
+	free_allowance = cint(settings.free_occurrences_per_month)
 	chargeable_days = sorted(unapproved_by_day)
-	fined_days = chargeable_days[FREE_OCCURRENCES_PER_MONTH:]
+	fined_days = chargeable_days[free_allowance:]
 
 	return {
 		"occurrences": occurrences,
 		"occurrence_days": len(unapproved_by_day) + len(approved_days),
 		"approved_days": len(approved_days),
-		"free_days_used": min(len(chargeable_days), FREE_OCCURRENCES_PER_MONTH),
+		"free_days_used": min(len(chargeable_days), free_allowance),
 		"fined_days": len(fined_days),
-		"fine_amount": flt(len(fined_days) * FINE_PER_OCCURRENCE, 2),
+		"fine_amount": flt(len(fined_days) * flt(settings.fine_per_occurrence), 2),
 		"hourly_deduction": flt(hourly_deduction, 2),
 	}
 
@@ -288,43 +379,85 @@ def compute_late_early_charges(employee: str, start, end, base: float) -> dict:
 
 
 def compute_attendance_penalties(
-	employee: str, start, end, base: float, payable_days: float
+	employee: str, start, end, base: float, payable_days: float, settings=None
 ) -> dict:
-	"""Extra day-deductions the client's leave rules impose on top of normal LOP.
+	"""Extra deductions the leave rules impose on top of ordinary loss of pay.
 
 	ERPNext already deducts for Absent and Half Day through attendance-based
-	payroll. These are the *additional* penalty days the spec asks for, so the
-	numbers here are deliberately incremental — adding a full day where ERPNext
-	took nothing, or the second half where it took one half.
+	payroll. Everything here is *additional*, so the shipped defaults are
+	incremental: a second day where ERPNext took one, the other half where it
+	took a half, a full day where it took nothing.
+
+	Each of the three kinds can be charged as days of salary or as a flat amount,
+	or switched off entirely, from Enfono HR Settings. Missing check-outs also
+	get a monthly free allowance, because on real data they are an endemic
+	logging habit rather than a disciplinary event.
 	"""
-	daily_rate = daily_rate_from_base(base)
+	settings = settings or get_settings()
+
+	if not cint(settings.enable_attendance_penalties):
+		return _empty_penalties()
+
+	daily_rate = daily_rate_from_base(base, settings)
 
 	unapproved_full_days = _count_unapproved_absences(employee, start, end)
 	unapproved_half_days = _count_unapproved_half_days(employee, start, end)
 	missing_checkout_days = _count_missing_checkouts(employee, start, end)
 
-	# Absent already costs one day of LOP; the rule is double, so one more.
-	full_day_penalty_days = unapproved_full_days
-	# Half Day already costs half; an unapproved one costs a full day, so the other half.
-	half_day_penalty_days = unapproved_half_days * 0.5
-	# A missing checkout on a Present day currently costs nothing.
-	checkout_penalty_days = missing_checkout_days * MISSING_CHECKOUT_PENALTY_DAYS
+	# The free allowance is spent before anything is charged.
+	free_checkouts = cint(settings.missing_checkout_free_days_per_month)
+	chargeable_checkouts = max(missing_checkout_days - free_checkouts, 0)
 
-	raw_penalty_days = full_day_penalty_days + half_day_penalty_days + checkout_penalty_days
+	kinds = (
+		("unapproved_absent", unapproved_full_days),
+		("unapproved_half_day", unapproved_half_days),
+		("missing_checkout", chargeable_checkouts),
+	)
 
-	# Hard ceiling: nobody can lose more days than they were paid for. Without
-	# this the literal rules produce penalties larger than the salary itself --
-	# on this site's July data, 24 penalty days against 23 days present.
-	capped_penalty_days = min(raw_penalty_days, max(payable_days, 0))
+	raw_amount = sum(resolve_penalty(settings, prefix, count, daily_rate) for prefix, count in kinds)
+	raw_days = sum(penalty_days_equivalent(settings, prefix, count) for prefix, count in kinds)
+
+	capped_days = raw_days
+	if cint(settings.cap_penalty_at_payable_days):
+		# Nobody can lose more days than they were paid for. Without this the
+		# literal rules produced 24 penalty days against 23 days present.
+		capped_days = min(capped_days, max(flt(payable_days), 0))
+
+	monthly_ceiling = flt(settings.max_penalty_days_per_month)
+	if monthly_ceiling > 0:
+		capped_days = min(capped_days, monthly_ceiling)
+
+	# Scale the money down in the same proportion the days were clipped, so a
+	# mix of day-based and amount-based penalties stays consistent.
+	if raw_days > 0 and capped_days < raw_days:
+		day_amount = raw_days * daily_rate
+		fixed_amount = max(raw_amount - day_amount, 0)
+		amount = (capped_days * daily_rate) + fixed_amount
+	else:
+		amount = raw_amount
 
 	return {
 		"unapproved_absent_days": unapproved_full_days,
 		"unapproved_half_days": unapproved_half_days,
 		"missing_checkout_days": missing_checkout_days,
-		"raw_penalty_days": flt(raw_penalty_days, 2),
-		"penalty_days": flt(capped_penalty_days, 2),
-		"penalty_days_capped": raw_penalty_days > capped_penalty_days,
-		"penalty_amount": flt(capped_penalty_days * daily_rate, 2),
+		"chargeable_checkout_days": chargeable_checkouts,
+		"raw_penalty_days": flt(raw_days, 2),
+		"penalty_days": flt(capped_days, 2),
+		"penalty_days_capped": flt(raw_days, 2) > flt(capped_days, 2),
+		"penalty_amount": flt(amount, 2),
+	}
+
+
+def _empty_penalties() -> dict:
+	return {
+		"unapproved_absent_days": 0,
+		"unapproved_half_days": 0,
+		"missing_checkout_days": 0,
+		"chargeable_checkout_days": 0,
+		"raw_penalty_days": 0.0,
+		"penalty_days": 0.0,
+		"penalty_days_capped": False,
+		"penalty_amount": 0.0,
 	}
 
 
@@ -418,8 +551,19 @@ def _count_missing_checkouts(employee: str, start, end) -> int:
 # --- Overtime -------------------------------------------------------------------
 
 
-def compute_overtime(employee: str, start, end, base: float) -> dict:
+def compute_overtime(employee: str, start, end, base: float, settings=None) -> dict:
 	"""Approved overtime plus the extra day earned by working a weekly off."""
+	settings = settings or get_settings()
+
+	if not cint(settings.enable_overtime):
+		return {
+			"ot_hours": 0.0,
+			"ot_amount": 0.0,
+			"sunday_days_worked": 0,
+			"sunday_amount": 0.0,
+			"total_overtime": 0.0,
+		}
+
 	records = frappe.get_all(
 		"Overtime Data",
 		filters={
@@ -431,15 +575,19 @@ def compute_overtime(employee: str, start, end, base: float) -> dict:
 		fields=["name", "date", "ot_hours", "ot_amount"],
 	)
 
-	hourly_rate = hourly_rate_from_base(base)
+	hourly_rate = hourly_rate_from_base(base, settings)
 	ot_hours = sum(flt(row.ot_hours) for row in records)
 	# Trust a stored amount if one was set; otherwise price it at the standard rate.
 	ot_amount = sum(
 		flt(row.ot_amount) or flt(hourly_rate * flt(row.ot_hours)) for row in records
 	)
 
-	sunday_days = _count_sundays_worked(employee, start, end)
-	sunday_amount = sunday_days * daily_rate_from_base(base)
+	sunday_days = _count_weekly_off_worked(employee, start, end, settings)
+	sunday_amount = (
+		sunday_days * daily_rate_from_base(base, settings)
+		if cint(settings.pay_extra_day_for_weekly_off)
+		else 0.0
+	)
 
 	return {
 		"ot_hours": flt(ot_hours, 2),
@@ -450,14 +598,15 @@ def compute_overtime(employee: str, start, end, base: float) -> dict:
 	}
 
 
-def _count_sundays_worked(employee: str, start, end) -> int:
-	"""Present days that fall on the employee's weekly off.
+def _count_weekly_off_worked(employee: str, start, end, settings=None) -> int:
+	"""Present days that fall on the company weekly off.
 
-	``DAYOFWEEK`` is 1 for Sunday in MariaDB. The spec names Sunday explicitly
-	rather than deriving the weekly off from the holiday list, so that is what is
-	implemented -- but note it will need revisiting for any employee whose weekly
-	off is not Sunday.
+	The spec names Sunday, but the day is a setting rather than a literal so a
+	branch on a different weekly off does not need a code change.
 	"""
+	settings = settings or get_settings()
+	day_number = WEEKDAY_NUMBERS.get(settings.weekly_off_day or "Sunday", 1)
+
 	return cint(
 		frappe.db.sql(
 			"""
@@ -467,9 +616,9 @@ def _count_sundays_worked(employee: str, start, end) -> int:
 				AND employee = %(employee)s
 				AND attendance_date BETWEEN %(start)s AND %(end)s
 				AND status IN ('Present', 'Work From Home')
-				AND DAYOFWEEK(attendance_date) = 1
+				AND DAYOFWEEK(attendance_date) = %(day_number)s
 			""",
-			{"employee": employee, "start": start, "end": end},
+			{"employee": employee, "start": start, "end": end, "day_number": day_number},
 		)[0][0]
 	)
 
@@ -535,17 +684,27 @@ def is_daily_wage(employee_doc: dict) -> bool:
 	return (employee_doc.get("custom_wage_type") or "Monthly") == "Daily Wage"
 
 
-def compute_daily_wage_earning(employee_doc: dict, start, end) -> dict:
-	"""Earnings for a daily-wage employee: day rate, with a Sunday premium."""
+def compute_daily_wage_earning(employee_doc: dict, start, end, settings=None) -> dict:
+	"""Earnings for a daily-wage employee: day rate, with a weekly-off premium."""
+	settings = settings or get_settings()
 	employee = employee_doc["name"]
-	daily_rate = flt(employee_doc.get("custom_daily_wage_rate"))
-	sunday_rate = flt(employee_doc.get("custom_sunday_wage_rate")) or daily_rate
+
+	# Per-employee rate wins; the settings default covers everyone else.
+	daily_rate = flt(employee_doc.get("custom_daily_wage_rate")) or flt(
+		settings.default_daily_wage_rate
+	)
+	sunday_rate = (
+		flt(employee_doc.get("custom_sunday_wage_rate"))
+		or flt(settings.default_sunday_wage_rate)
+		or daily_rate
+	)
+	day_number = WEEKDAY_NUMBERS.get(settings.weekly_off_day or "Sunday", 1)
 
 	rows = frappe.db.sql(
 		"""
 		SELECT
-			SUM(CASE WHEN DAYOFWEEK(attendance_date) = 1 THEN 1 ELSE 0 END) AS sundays,
-			SUM(CASE WHEN DAYOFWEEK(attendance_date) <> 1 THEN 1 ELSE 0 END) AS weekdays,
+			SUM(CASE WHEN DAYOFWEEK(attendance_date) = %(day_number)s THEN 1 ELSE 0 END) AS sundays,
+			SUM(CASE WHEN DAYOFWEEK(attendance_date) <> %(day_number)s THEN 1 ELSE 0 END) AS weekdays,
 			SUM(CASE WHEN status = 'Half Day' THEN 1 ELSE 0 END) AS half_days
 		FROM `tabAttendance`
 		WHERE docstatus = 1
@@ -553,7 +712,7 @@ def compute_daily_wage_earning(employee_doc: dict, start, end) -> dict:
 			AND attendance_date BETWEEN %(start)s AND %(end)s
 			AND status IN ('Present', 'Half Day', 'Work From Home')
 		""",
-		{"employee": employee, "start": start, "end": end},
+		{"employee": employee, "start": start, "end": end, "day_number": day_number},
 		as_dict=True,
 	)[0]
 
@@ -583,6 +742,7 @@ def compute_employee_payroll(employee_doc: dict, year: int, month: int) -> dict:
 
 	Net Salary = Gross Pay - Advance - ESI - Fine - Arrears + OT, per the spec.
 	"""
+	settings = get_settings()
 	start, end = month_bounds(year, month)
 	employee = employee_doc["name"]
 	total_days = calendar.monthrange(year, month)[1]
@@ -595,7 +755,7 @@ def compute_employee_payroll(employee_doc: dict, year: int, month: int) -> dict:
 	payable_days = flt(counts["present"]) + (flt(counts["half_day"]) * 0.5)
 
 	if daily_wage:
-		wage = compute_daily_wage_earning(employee_doc, start, end)
+		wage = compute_daily_wage_earning(employee_doc, start, end, settings)
 		gross_salary = wage["gross_earning"]
 		lop_amount = 0.0
 		gross_pay = gross_salary
@@ -605,9 +765,11 @@ def compute_employee_payroll(employee_doc: dict, year: int, month: int) -> dict:
 		lop_amount = flt((base / total_days) * lop_days, 2) if total_days else 0.0
 		gross_pay = flt(gross_salary - lop_amount, 2)
 
-	late_early = compute_late_early_charges(employee, start, end, base)
-	penalties = compute_attendance_penalties(employee, start, end, base, payable_days)
-	overtime = compute_overtime(employee, start, end, base)
+	late_early = compute_late_early_charges(employee, start, end, base, settings)
+	penalties = compute_attendance_penalties(
+		employee, start, end, base, payable_days, settings
+	)
+	overtime = compute_overtime(employee, start, end, base, settings)
 	advance = compute_advance(employee, end)
 	arrears = compute_arrears(employee, end)
 	esi = _get_esi_amount(employee, end)
@@ -617,18 +779,31 @@ def compute_employee_payroll(employee_doc: dict, year: int, month: int) -> dict:
 		2,
 	)
 
-	total_deductions = flt(
+	requested_deductions = flt(
 		advance["advance_amount"] + esi + fine_total + arrears["arrear_amount"], 2
 	)
 	earnings = flt(gross_pay + overtime["total_overtime"], 2)
 
-	# A salary slip must never go negative. If the rules ask for more than the
-	# month can pay, the excess is reported rather than silently applied -- what
-	# happens to it (carry to next month, or waive) is a client decision, not one
-	# to bury in a formula.
+	# Optional ceiling on everything deducted, as a share of gross pay.
+	total_deductions = requested_deductions
+	deduction_ceiling = flt(settings.max_total_deduction_percent)
+	if deduction_ceiling > 0:
+		total_deductions = min(total_deductions, flt(gross_pay) * deduction_ceiling / 100.0)
+
 	uncapped_net = flt(earnings - total_deductions, 2)
-	net_salary = max(uncapped_net, 0.0)
-	excess_deduction = flt(abs(min(uncapped_net, 0.0)), 2)
+
+	# A salary slip must never go negative. Whatever the rules ask for beyond what
+	# the month can pay is reported rather than silently applied -- carrying it
+	# forward or waiving it is a client decision, not one to bury in a formula.
+	if cint(settings.floor_net_salary_at_zero):
+		net_salary = max(uncapped_net, 0.0)
+	else:
+		net_salary = uncapped_net
+
+	total_deductions = flt(total_deductions, 2)
+	excess_deduction = flt(requested_deductions - total_deductions, 2) + flt(
+		abs(min(uncapped_net, 0.0)) if cint(settings.floor_net_salary_at_zero) else 0.0, 2
+	)
 
 	return {
 		"employee": employee,
@@ -657,6 +832,7 @@ def compute_employee_payroll(employee_doc: dict, year: int, month: int) -> dict:
 		"unapproved_absent_days": penalties["unapproved_absent_days"],
 		"unapproved_half_days": penalties["unapproved_half_days"],
 		"missing_checkout_days": penalties["missing_checkout_days"],
+		"chargeable_checkout_days": penalties["chargeable_checkout_days"],
 		"fine_total": fine_total,
 		"ot_hours": overtime["ot_hours"],
 		"ot_amount": overtime["ot_amount"],
