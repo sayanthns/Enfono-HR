@@ -47,6 +47,13 @@ def get_columns():
 		{"label": _("Late Duration"), "fieldname": "late_duration", "fieldtype": "Data", "width": 120},
 		{"label": _("Late (Minutes)"), "fieldname": "late_minutes", "fieldtype": "Int", "width": 120},
 		{
+			"label": _("Working Hours"),
+			"fieldname": "working_hours",
+			"fieldtype": "Float",
+			"precision": 2,
+			"width": 120,
+		},
+		{
 			"label": _("Attendance"),
 			"fieldname": "attendance",
 			"fieldtype": "Link",
@@ -76,6 +83,7 @@ def get_data(filters):
 			st.start_time           AS shift_start,
 			att.in_time             AS in_time,
 			att.name                AS attendance,
+			att.working_hours       AS working_hours,
 			TIMESTAMPDIFF(MINUTE, {SHIFT_START_EXPR}, att.in_time) AS late_minutes
 		FROM `tabAttendance` att
 		INNER JOIN `tabEmployee` emp ON emp.name = att.employee

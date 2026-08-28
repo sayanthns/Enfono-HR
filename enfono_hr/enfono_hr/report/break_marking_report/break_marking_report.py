@@ -31,6 +31,14 @@ from enfono_hr.hr_report_utils import (
 #: Ignore sub-minute in/out bounces — those are double taps, not breaks.
 MIN_BREAK_MINUTES = 1
 
+#: Beyond this, an OUT/IN pair is not a break.
+#:
+#: Someone who logs out at 09:00 and back in at 18:00 did not take a nine-hour
+#: break — they left and returned, and the middle of that day is absence, not
+#: rest. Without a ceiling those gaps dominate the averages and make the report
+#: useless for spotting genuinely long lunches.
+MAX_BREAK_MINUTES = 240
+
 
 def execute(filters=None):
 	filters = frappe._dict(filters or {})
@@ -95,10 +103,14 @@ def get_data(filters):
 		as_dict=True,
 	)
 
-	return build_breaks(logs, cint(filters.get("min_break_minutes") or MIN_BREAK_MINUTES))
+	return build_breaks(
+		logs,
+		cint(filters.get("min_break_minutes") or MIN_BREAK_MINUTES),
+		cint(filters.get("max_break_minutes") or MAX_BREAK_MINUTES),
+	)
 
 
-def build_breaks(logs, min_break_minutes):
+def build_breaks(logs, min_break_minutes, max_break_minutes):
 	"""Turn an ordered check-in stream into break rows.
 
 	Walks each employee-day in time order and emits a row for every OUT that is
@@ -122,7 +134,7 @@ def build_breaks(logs, min_break_minutes):
 				(get_datetime(following["log_time"]) - get_datetime(current["log_time"])).total_seconds()
 				// 60
 			)
-			if minutes < min_break_minutes:
+			if minutes < min_break_minutes or minutes > max_break_minutes:
 				continue
 
 			break_no += 1
@@ -168,7 +180,7 @@ def get_report_summary(data):
 		{"label": _("Total Break Minutes"), "value": total_minutes, "datatype": "Int"},
 		{
 			"label": _("Avg Break (Minutes)"),
-			"value": round(total_minutes / len(data)),
+			"value": round(total_minutes / len(data)) if data else 0,
 			"datatype": "Int",
 		},
 	]

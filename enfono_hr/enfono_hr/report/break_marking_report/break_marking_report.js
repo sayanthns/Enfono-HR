@@ -48,6 +48,12 @@ frappe.query_reports["Break Marking Report"] = {
 			default: 1,
 		},
 		{
+			fieldname: "max_break_minutes",
+			label: __("Maximum Break (Minutes)"),
+			fieldtype: "Int",
+			default: 240,
+		},
+		{
 			fieldname: "include_inactive",
 			label: __("Include Inactive Employees"),
 			fieldtype: "Check",

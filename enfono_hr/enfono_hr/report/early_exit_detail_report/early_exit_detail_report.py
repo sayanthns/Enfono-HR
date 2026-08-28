@@ -51,6 +51,13 @@ def get_columns():
 		},
 		{"label": _("Early (Minutes)"), "fieldname": "early_minutes", "fieldtype": "Int", "width": 120},
 		{
+			"label": _("Working Hours"),
+			"fieldname": "working_hours",
+			"fieldtype": "Float",
+			"precision": 2,
+			"width": 120,
+		},
+		{
 			"label": _("Attendance"),
 			"fieldname": "attendance",
 			"fieldtype": "Link",
@@ -82,6 +89,7 @@ def get_data(filters):
 			st.end_time             AS shift_end,
 			att.out_time            AS out_time,
 			att.name                AS attendance,
+			att.working_hours       AS working_hours,
 			TIMESTAMPDIFF(MINUTE, att.out_time, {SHIFT_END_EXPR}) AS early_minutes
 		FROM `tabAttendance` att
 		INNER JOIN `tabEmployee` emp ON emp.name = att.employee
@@ -89,7 +97,13 @@ def get_data(filters):
 		WHERE att.docstatus = 1
 			AND att.attendance_date BETWEEN %(from_date)s AND %(to_date)s
 			AND att.out_time IS NOT NULL
+			AND att.in_time IS NOT NULL
 			AND att.status IN ('Present', 'Half Day', 'Work From Home')
+			-- A day with no genuine checkout leaves out_time equal to in_time.
+			-- That is a missing checkout, not an early exit: it belongs to the
+			-- Previous Day Checkout Not Marked report, and counting it here would
+			-- fine the same employee twice for one lapse.
+			AND att.out_time > att.in_time
 			AND TIMESTAMPDIFF(MINUTE, att.out_time, {SHIFT_END_EXPR}) > %(grace)s
 			AND NOT EXISTS (
 				SELECT 1 FROM `tabEmployee Checkin` eci
