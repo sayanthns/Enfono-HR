@@ -19,7 +19,7 @@ def execute(filters=None):
 
 
 def get_columns():
-	return EMPLOYEE_COLUMNS + [
+	columns = EMPLOYEE_COLUMNS + [
 		{
 			"label": _("Leave Type"),
 			"fieldname": "leave_type",
@@ -33,7 +33,6 @@ def get_columns():
 		{"label": _("Half Day"), "fieldname": "half_day", "fieldtype": "Check", "width": 80},
 		{"label": _("Leave Reason"), "fieldname": "leave_reason", "fieldtype": "Data", "width": 260},
 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 100},
-		{"label": _("Workflow State"), "fieldname": "workflow_state", "fieldtype": "Data", "width": 160},
 		{
 			"label": _("Reported Date & Time"),
 			"fieldname": "reported_on",
@@ -48,6 +47,26 @@ def get_columns():
 			"width": 150,
 		},
 	]
+
+	# workflow_state is a Custom Field that only exists where a Leave Approval
+	# workflow has been configured. Referencing it unconditionally makes the
+	# report unrunnable on any site without that workflow.
+	if has_workflow_state():
+		columns.insert(
+			-1,
+			{
+				"label": _("Workflow State"),
+				"fieldname": "workflow_state",
+				"fieldtype": "Data",
+				"width": 160,
+			},
+		)
+
+	return columns
+
+
+def has_workflow_state() -> bool:
+	return frappe.db.has_column("Leave Application", "workflow_state")
 
 
 def get_data(filters):
@@ -65,6 +84,10 @@ def get_data(filters):
 		leave_type_condition = "AND la.leave_type = %(leave_type)s"
 		params["leave_type"] = filters.get("leave_type")
 
+	workflow_state_select = (
+		"la.workflow_state" if has_workflow_state() else "NULL"
+	)
+
 	return frappe.db.sql(
 		f"""
 		SELECT
@@ -80,7 +103,7 @@ def get_data(filters):
 			la.half_day             AS half_day,
 			la.description          AS leave_reason,
 			la.status               AS status,
-			la.workflow_state       AS workflow_state,
+			{workflow_state_select} AS workflow_state,
 			la.creation             AS reported_on,
 			la.name                 AS leave_application
 		FROM `tabLeave Application` la
