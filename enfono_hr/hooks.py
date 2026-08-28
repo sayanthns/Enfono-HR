@@ -130,6 +130,13 @@ web_include_js = "/assets/enfono_hr/js/test_login.js"
 # 		"on_trash": "method"
 # 	}
 # }
+# Pretty URL for the handbook. The page itself must be named with underscores —
+# a hyphenated filename cannot be imported as a Python module, so its controller
+# is silently skipped and the page renders with no permission check at all.
+website_route_rules = [
+    {"from_route": "/hr-handbook", "to_route": "hr_handbook"},
+]
+
 doc_events = {
     "Notification Log": {
         "after_insert": "enfono_hr.firebase_notification.notification_queue"
