@@ -133,7 +133,10 @@ web_include_js = "/assets/enfono_hr/js/test_login.js"
 doc_events = {
     "Notification Log": {
         "after_insert": "enfono_hr.firebase_notification.notification_queue"
-    }
+    },
+    "Employee Advance": {
+        "validate": "enfono_hr.employee_advance_hooks.set_approval_route"
+    },
 }
 
 # Scheduled Tasks

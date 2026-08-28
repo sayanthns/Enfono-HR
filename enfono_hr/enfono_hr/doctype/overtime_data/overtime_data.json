@@ -7,6 +7,9 @@
  "engine": "InnoDB",
  "field_order": [
   "employee",
+  "employee_name",
+  "designation",
+  "branch",
   "date",
   "ot_hours",
   "naming_series",
@@ -14,6 +17,14 @@
   "company",
   "overtime_status",
   "ot_amount",
+  "section_rate",
+  "base_salary",
+  "ot_rate",
+  "column_break_rate",
+  "shift",
+  "is_sunday",
+  "section_remarks",
+  "remarks",
   "amended_from"
  ],
  "fields": [
@@ -21,6 +32,7 @@
    "fieldname": "employee",
    "fieldtype": "Link",
    "in_list_view": 1,
+   "in_standard_filter": 1,
    "label": "Employee",
    "options": "Employee",
    "reqd": 1
@@ -50,17 +62,20 @@
    "options": "Company"
   },
   {
+   "default": "Draft",
    "fieldname": "overtime_status",
    "fieldtype": "Select",
+   "in_standard_filter": 1,
    "label": "Overtime Status",
-   "options": "Draft\nApproved"
+   "options": "Draft\nApproved\nRejected"
   },
   {
    "fieldname": "ot_amount",
    "fieldtype": "Currency",
    "in_list_view": 1,
    "label": "OT  Total Amount",
-   "reqd": 1
+   "read_only": 1,
+   "reqd": 0
   },
   {
    "fieldname": "naming_series",
@@ -77,12 +92,82 @@
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
+  },
+  {
+   "fetch_from": "employee.employee_name",
+   "fieldname": "employee_name",
+   "fieldtype": "Data",
+   "label": "Employee Name",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.designation",
+   "fieldname": "designation",
+   "fieldtype": "Link",
+   "label": "Designation",
+   "options": "Designation",
+   "read_only": 1
+  },
+  {
+   "fetch_from": "employee.branch",
+   "fieldname": "branch",
+   "fieldtype": "Link",
+   "label": "Branch",
+   "options": "Branch",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_rate",
+   "fieldtype": "Section Break",
+   "label": "Rate"
+  },
+  {
+   "description": "From the Salary Structure Assignment effective on this date.",
+   "fieldname": "base_salary",
+   "fieldtype": "Currency",
+   "label": "Base Salary",
+   "read_only": 1
+  },
+  {
+   "description": "Base \u00f7 31 \u00f7 8, the basis confirmed for this client.",
+   "fieldname": "ot_rate",
+   "fieldtype": "Currency",
+   "label": "OT Rate / Hour",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_rate",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "shift",
+   "fieldtype": "Link",
+   "label": "Shift",
+   "options": "Shift Type",
+   "read_only": 1
+  },
+  {
+   "description": "Working a weekly off earns one extra day of salary, paid separately from these OT hours.",
+   "fieldname": "is_sunday",
+   "fieldtype": "Check",
+   "label": "Worked on Sunday",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_remarks",
+   "fieldtype": "Section Break",
+   "label": "Remarks"
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks"
   }
  ],
  "index_web_pages_for_search": 1,
  "is_submittable": 1,
  "links": [],
- "modified": "2025-10-17 14:24:46.710249",
+ "modified": "2026-08-28 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "Enfono HR",
  "name": "Overtime Data",
@@ -90,6 +175,36 @@
  "owner": "Administrator",
  "permissions": [
   {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR User",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -99,10 +214,12 @@
    "report": 1,
    "role": "System Manager",
    "share": 1,
+   "submit": 1,
    "write": 1
   }
  ],
  "sort_field": "modified",
  "sort_order": "DESC",
- "states": []
+ "states": [],
+ "title_field": "employee_name"
 }
