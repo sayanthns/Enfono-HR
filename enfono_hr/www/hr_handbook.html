@@ -254,321 +254,676 @@
     .masthead { padding-top: 48px; }
   }
 
-</style>
-{% endblock %}
+
+  /* ══ DOCUMENTATION LAYOUT ═══════════════════════════════════════════════
+     The page grew from a single-column briefing into reference documentation
+     people navigate rather than read straight through, so it now carries a
+     sticky contents rail beside the prose. Below 1080px the rail returns to
+     being an ordinary block at the top — a position:sticky sidebar in a narrow
+     viewport just eats the screen. */
+  .hr-handbook .wrap { max-width: 860px; margin: 0 auto; }
+
+  .hr-handbook .doc-layout {
+    display: grid;
+    grid-template-columns: 232px minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+    max-width: 1180px;
+    margin: 0 auto;
+  }
+  .hr-handbook .doc-rail {
+    position: sticky; top: 24px;
+    align-self: start;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    font-family: "Archivo", system-ui, sans-serif;
+  }
+  .hr-handbook .doc-rail .rail-title {
+    font-size: 11px; font-weight: 700; letter-spacing: .16em;
+    text-transform: uppercase; color: var(--ink-faint);
+    margin: 0 0 14px; padding-bottom: 10px;
+    border-bottom: 1px solid var(--rule);
+  }
+  .hr-handbook .doc-rail ol { list-style: none; margin: 0; padding: 0; }
+  .hr-handbook .doc-rail li { margin: 0; }
+  .hr-handbook .doc-rail a {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 7px 10px; margin-left: -10px;
+    border-radius: 6px;
+    font-size: 14px; line-height: 1.35;
+    color: var(--ink-soft); text-decoration: none;
+  }
+  .hr-handbook .doc-rail a:hover { background: var(--rule-soft); color: var(--ink); }
+  .hr-handbook .doc-rail a .n {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px; color: var(--accent); flex: none;
+    font-variant-numeric: tabular-nums;
+  }
+  @media (max-width: 1080px) {
+    .hr-handbook .doc-layout { display: block; }
+    .hr-handbook .doc-rail {
+      position: static; max-height: none; overflow: visible;
+      background: var(--card); border: 1px solid var(--rule);
+      border-radius: 10px; padding: 20px 22px; margin-bottom: 48px;
+      box-shadow: var(--shadow);
+    }
+    .hr-handbook .doc-rail ol {
+      columns: 2; column-gap: 28px;
+    }
+    .hr-handbook .doc-rail li { break-inside: avoid; }
+  }
+  @media (max-width: 560px) {
+    .hr-handbook .doc-rail ol { columns: 1; }
+  }
+
+  /* ══ FIGURES ════════════════════════════════════════════════════════════
+     Screenshots are served from /assets/, which Frappe serves WITHOUT
+     authentication. Every one of them therefore has employee names, IDs and
+     pay columns blurred in the browser before capture — see doc-shots.mjs.
+     Do not replace one with an un-redacted capture. */
+  .hr-handbook figure.shot {
+    margin: 26px 0 30px;
+    background: var(--card);
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .hr-handbook figure.shot img {
+    display: block; width: 100%; height: auto;
+    border-bottom: 1px solid var(--rule-soft);
+    background: var(--rule-soft);
+  }
+  .hr-handbook figure.shot figcaption {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 13px; line-height: 1.5;
+    color: var(--ink-faint);
+    padding: 11px 16px;
+  }
+  .hr-handbook figure.shot figcaption b { color: var(--ink-soft); font-weight: 600; }
+  .hr-handbook figure.shot a.zoom {
+    float: right; margin-left: 14px;
+    color: var(--accent-ink); text-decoration: none;
+    font-size: 12px; font-weight: 600; white-space: nowrap;
+  }
+  .hr-handbook figure.shot a.zoom:hover { text-decoration: underline; }
+
+  /* ══ SUMMARY ════════════════════════════════════════════════════════════ */
+  .hr-handbook .stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 14px; margin: 0 0 30px;
+  }
+  @media (max-width: 700px) { .hr-handbook .stats { grid-template-columns: repeat(2, 1fr); } }
+  .hr-handbook .stat {
+    background: var(--card); border: 1px solid var(--rule);
+    border-radius: 10px; padding: 18px 16px; text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .hr-handbook .stat .v {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 32px; font-weight: 700; letter-spacing: -.02em;
+    color: var(--ink); line-height: 1;
+  }
+  .hr-handbook .stat .k {
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 12px; color: var(--ink-faint);
+    margin-top: 7px; line-height: 1.3;
+  }
+  .hr-handbook .stat.warn { border-color: var(--danger-rule); background: var(--danger-wash); }
+  .hr-handbook .stat.warn .v { color: var(--danger); }
+
+  .hr-handbook .chip {
+    display: inline-block;
+    font-family: "Archivo", system-ui, sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: .04em;
+    padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  }
+  .hr-handbook .chip.ok   { background: var(--accent-wash); color: var(--accent-ink); }
+  .hr-handbook .chip.wait { background: var(--danger-wash); color: var(--danger); }
+</style>{% endblock %}
 
 {% block page_content %}
 <div class="hr-handbook">
-<div class="wrap">
+  <div class="wrap">
+    <header class="masthead">
+      <p class="eyebrow">Inlite Furnishings &middot; HR System</p>
+      <h1>Inlite HR Handbook</h1>
+      <p class="standfirst">Ten reports, three forms, and one settings page that decides what
+        everybody gets paid. This is the reference guide to all of it.</p>
+      <div class="meta">
+        <span><b>Version</b> 1.1</span>
+        <span><b>Updated</b> 30 August 2026</span>
+        <span><b>For</b> HR team, branch managers, payroll</span>
+      </div>
+    </header>
+  </div>
 
-  <header class="masthead">
-    <p class="eyebrow">Inlite Furnishings &middot; HR System</p>
-    <h1>Inlite HR Handbook</h1>
-    <p class="standfirst">Ten new reports, three new forms, and one settings page that decides what everybody gets paid. This is the guide to all of it.</p>
-    <div class="meta">
-      <span><b>Version</b> 1.0</span>
-      <span><b>Updated</b> 28 August 2026</span>
-      <span><b>For</b> HR team, branch managers, payroll</span>
-    </div>
-  </header>
+  <div class="doc-layout">
+    <nav class="doc-rail" aria-label="Contents">
+      <p class="rail-title">Contents</p>
+      <ol>
+          <li><a href="#glance"><span class="n">00</span><span>At a glance</span></a></li>
+          <li><a href="#changed"><span class="n">01</span><span>What changed</span></a></li>
+          <li><a href="#reports"><span class="n">02</span><span>The reports</span></a></li>
+          <li><a href="#settings"><span class="n">03</span><span>HR Settings</span></a></li>
+          <li><a href="#daily-wage"><span class="n">04</span><span>Daily-wage staff</span></a></li>
+          <li><a href="#forms"><span class="n">05</span><span>The three new forms</span></a></li>
+          <li><a href="#preview"><span class="n">06</span><span>Payroll preview</span></a></li>
+          <li><a href="#gotchas"><span class="n">07</span><span>Things to know</span></a></li>
+          <li><a href="#help"><span class="n">08</span><span>Getting help</span></a></li>
+      </ol>
+    </nav>
 
-  <nav class="toc" aria-label="Contents">
-    <ol>
-      <li><a href="#s1"><span>01</span> What changed</a></li>
-      <li><a href="#s2"><span>02</span> The reports</a></li>
-      <li><a href="#s3"><span>03</span> HR Settings</a></li>
-      <li><a href="#s4"><span>04</span> Daily-wage staff</a></li>
-      <li><a href="#s5"><span>05</span> The three new forms</a></li>
-      <li><a href="#s6"><span>06</span> Payroll preview</a></li>
-      <li><a href="#s7"><span>07</span> Things to know</a></li>
-      <li><a href="#s8"><span>08</span> Getting help</a></li>
-    </ol>
-  </nav>
+    <main class="doc-main">
 
-  <section id="s1">
-    <h2><span class="num">01</span> What changed</h2>
-    <p>Ten new reports, three new forms, and one settings page. The desk is also grey now.</p>
-    <p>To open any of these: press <kbd>Ctrl</kbd> + <kbd>G</kbd> (or <kbd>&#8984;</kbd> + <kbd>G</kbd>), type the name, press Enter.</p>
-    <div class="tw">
-      <table>
-        <thead><tr><th>You want to&hellip;</th><th>Go to</th></tr></thead>
-        <tbody>
-          <tr><td>See today&rsquo;s leave requests</td><td>Daily Leave Request Report</td></tr>
-          <tr><td>See who came in late</td><td>Late Entry Detail Report</td></tr>
-          <tr><td>See who left early</td><td>Early Exit Detail Report</td></tr>
-          <tr><td>See who forgot to check out</td><td>Previous Day Checkout Not Marked Report</td></tr>
-          <tr><td>See the whole month on one page</td><td>Monthly Attendance Sheet Detail</td></tr>
-          <tr><td>Check leave balances</td><td>Leave Balance Report</td></tr>
-          <tr><td>See break patterns</td><td>Break Marking Report</td></tr>
-          <tr><td>Plan tomorrow&rsquo;s cover</td><td>Tomorrow Leave List</td></tr>
-          <tr><td>Track advances</td><td>Advance Payment Request Report</td></tr>
-          <tr><td>Check what payroll <em>would</em> pay</td><td>Payroll Computation Preview</td></tr>
-          <tr><td>Excuse a late arrival</td><td>Late Entry Early Exit Request</td></tr>
-          <tr><td>Record money owed by staff</td><td>Employee Arrear</td></tr>
-          <tr><td>Record overtime</td><td>Overtime Data</td></tr>
-          <tr><td>Change any rule or amount</td><td>Enfono HR Settings</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+    <section id="glance">
+      <h2><span class="num">00</span> At a glance</h2>
+      <p>Everything in the original requirement document has been built and is live on this
+        system. Four items are finished but still need a decision from management before payroll
+        is calculated from them &mdash; they are flagged in place throughout this guide.</p>
 
-  <section id="s2">
-    <h2><span class="num">02</span> The reports</h2>
-    <p>Every report shares the same filters: <strong>Employee, Branch, Department, Designation</strong>. Leave them blank to see everything you have access to.</p>
-    <div class="note">
-      <span class="label">Branch scoping</span>
-      <p>If you are not an HR Manager or System Manager, reports show only your own branch unless you pick a different one. HR Managers see all branches by default.</p>
-    </div>
+      <div class="stats">
+        <div class="stat"><div class="v">10</div><div class="k">Reports</div></div>
+        <div class="stat"><div class="v">3</div><div class="k">New forms</div></div>
+        <div class="stat"><div class="v">39</div><div class="k">Settings you control</div></div>
+        <div class="stat warn"><div class="v">4</div><div class="k">Awaiting a decision</div></div>
+      </div>
 
-    <h3>Daily Leave Request Report</h3>
-    <p>Leave requests <strong>as they were submitted</strong>. &ldquo;Reported Date &amp; Time&rdquo; is when the request landed in the tray &mdash; not the date being asked for. Defaults to today.</p>
-
-    <h3>Late Entry Detail Report</h3>
-    <p>Anyone who arrived more than the grace period after their shift start.</p>
-    <ul>
-      <li><strong>Grace Period (Minutes)</strong> filter &mdash; defaults to 15. Change it to see what a different rule would catch, without changing the rule.</li>
-      <li><strong>Working Hours</strong> column &mdash; added on purpose. If a row shows a huge lateness but almost no working hours, that is a check-in app mis-tap, not a real day. Check it before acting on it.</li>
-    </ul>
-
-    <h3>Early Exit Detail Report</h3>
-    <p>The mirror image, measured against shift end. Overnight shifts (8PM&ndash;8AM) are handled correctly. Check-outs created automatically at 23:00 by the system are excluded &mdash; those are not real early exits.</p>
-
-    <h3>Previous Day Checkout Not Marked Report</h3>
-    <p>Defaults to <strong>yesterday</strong>, which is how you should run it &mdash; first thing each morning.</p>
-    <div class="tw">
-      <table>
-        <thead><tr><th>Reason</th><th>Meaning</th></tr></thead>
-        <tbody>
-          <tr><td><code>No Check-out Logged</code></td><td>Nothing was recorded at all</td></tr>
-          <tr><td><code>Auto Check-Out Applied</code></td><td>The system stamped a 23:00 checkout to stop them being marked Absent</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>Both mean the employee did not check out. The <strong>Half Day Requested</strong> column shows whether they filed a half-day leave &mdash; which is the difference between a penalty and no penalty.</p>
-
-    <h3>Monthly Attendance Sheet Detail</h3>
-    <p>One row per employee, one column per day.</p>
-    <p><code>P</code> Present &middot; <code>A</code> Absent &middot; <code>H</code> Half Day &middot; <code>L</code> On Leave &middot; <code>W</code> Work From Home &middot; <code>O</code> Holiday &middot; <em>blank</em> = nothing marked</p>
-    <p>A blank cell is worth looking at: unmarked days are treated as <strong>Absent</strong> by payroll.</p>
-
-    <h3>Leave Balance Report</h3>
-    <p>Opening balance, allocated, carried forward, taken, expired, closing &mdash; per employee per leave type. Defaults to the current year.</p>
-    <p>This uses the same calculation as ERPNext&rsquo;s own leave balance, so it will always agree with what an employee sees. It replaces the four older balance reports.</p>
-
-    <h3>Break Marking Report</h3>
-    <p>Breaks are worked out from check-out/check-in pairs during the day &mdash; the system has no separate &ldquo;break&rdquo; button.</p>
-    <ul>
-      <li><strong>Minimum Break (Minutes)</strong> &mdash; ignores accidental double taps. Default 1.</li>
-      <li><strong>Maximum Break (Minutes)</strong> &mdash; default 240. Someone who checks out at 09:00 and back in at 18:00 did not take a nine-hour break; that is absence.</li>
-    </ul>
-    <div class="note">
-      <span class="label">Limitation worth knowing</span>
-      <p>An employee who never logs out for lunch shows no break. This report reflects logging discipline, not actual behaviour.</p>
-    </div>
-
-    <h3>Tomorrow Leave List</h3>
-    <p>Who is off tomorrow, grouped by branch. Tick <strong>Include Pending Approval</strong> to also see requests that have not been approved yet.</p>
-
-    <h3>Advance Payment Request Report</h3>
-    <p>All advances with their outstanding balance. The <strong>Approval Route</strong> column shows <code>Standard</code> or <code>Driver &amp; Marketing</code> &mdash; set automatically from the employee&rsquo;s designation.</p>
-  </section>
-
-  <section id="s3">
-    <h2><span class="num">03</span> Enfono HR Settings &mdash; where the rules live</h2>
-    <p><kbd>Ctrl</kbd> + <kbd>G</kbd> &rarr; <strong>Enfono HR Settings</strong></p>
-    <div class="note">
-      <span class="label">The habit to build</span>
-      <p><strong>This page decides what everyone gets paid.</strong> After any change, run the Payroll Computation Preview for a full month and check the totals <em>before</em> the next payroll run. There is a button on the settings page that takes you straight there.</p>
-    </div>
-
-    <h3>Late Entry &amp; Early Exit Fines</h3>
-    <div class="tw">
-      <table>
-        <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
-        <tbody>
-          <tr><td>Grace Period (Minutes)</td><td>15</td><td>Minutes allowed before a day counts</td></tr>
-          <tr><td>Free Occurrence Days Per Month</td><td>3</td><td>Free days before any fine</td></tr>
-          <tr><td>Fine Per Occurrence Day</td><td>&#8377;100</td><td>Charged per day beyond the free allowance</td></tr>
-          <tr><td>Minimum Working Hours To Fine</td><td>0.25</td><td>Days shorter than this are treated as mis-taps and never fined</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p>A day counts <strong>once</strong> even if the employee was both late and left early.</p>
-
-    <h3>Attendance Penalties</h3>
-    <p>These are charged <strong>on top of</strong> the pay ERPNext already deducts for an absent or half day. Each of the three kinds can be set three ways: <strong>Days of Salary</strong>, <strong>Fixed Amount</strong>, or <strong>None</strong>.</p>
-    <div class="tw">
-      <table>
-        <thead><tr><th>Kind</th><th>Default</th><th>ERPNext already deducts</th><th>So the default adds</th></tr></thead>
-        <tbody>
-          <tr><td>Unapproved full-day absence</td><td>1 day</td><td>1 day</td><td>a second day (double, per spec)</td></tr>
-          <tr><td>Unapproved / rejected half day</td><td>0.5 day</td><td>0.5 day</td><td>the other half</td></tr>
-          <tr><td>Checkout not marked</td><td>1 day</td><td>nothing</td><td>a full day</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="danger">
-      <span class="label">Read this before setting the missing-checkout penalty</span>
-      <p>In July 2026, <strong>51 of 56 employees missed at least one checkout</strong>. It is a logging habit, not 51 disciplinary cases.</p>
-      <p>Charging one full day per occurrence removes <span class="hot">about a third of total payroll</span> and takes two employees to zero pay. Measured on real data:</p>
       <div class="tw">
         <table>
-          <thead><tr><th>Setting</th><th>Total penalties</th><th>Share of gross</th><th>Staff paid &#8377;0</th></tr></thead>
+          <thead><tr><th>Area</th><th>Status</th><th>Notes</th></tr></thead>
           <tbody>
-            <tr><td>1 full day each</td><td>&#8377;286,032</td><td class="hot">32.0%</td><td class="hot">2</td></tr>
-            <tr><td>&#8377;100 fixed, 2 free per month</td><td>&#8377;184,889</td><td>20.7%</td><td>0</td></tr>
-            <tr><td>Switched off</td><td>&#8377;176,089</td><td>19.7%</td><td>0</td></tr>
+            <tr><td>The ten reports</td><td><span class="chip ok">Ready</span></td>
+                <td>Read-only. Safe to explore &mdash; nothing you do in a report changes data.</td></tr>
+            <tr><td>Late entry / early exit fines</td><td><span class="chip ok">Ready</span></td>
+                <td>15-minute grace, 3 free days a month, then &#8377;100 a day.</td></tr>
+            <tr><td>Overtime</td><td><span class="chip ok">Ready</span></td>
+                <td>Base &divide; 31 &divide; 8. Approval required before anything is paid.</td></tr>
+            <tr><td>Advances, ESI, arrears</td><td><span class="chip ok">Ready</span></td>
+                <td>All three feed the payroll preview.</td></tr>
+            <tr><td>Missing check-out penalty</td><td><span class="chip wait">Needs a decision</span></td>
+                <td>Currently one full day, as originally specified. See <a href="#settings">section 03</a>
+                    before relying on it &mdash; it is the single most expensive setting on the system.</td></tr>
+            <tr><td>Chelambra daily-wage staff</td><td><span class="chip wait">Needs a decision</span></td>
+                <td>Still set to Monthly. See <a href="#daily-wage">section 04</a>.</td></tr>
+            <tr><td>Driver 11-hour shift</td><td><span class="chip wait">Awaiting times</span></td>
+                <td>Shift start and end times were never specified.</td></tr>
+            <tr><td>Marketing team advance route</td><td><span class="chip wait">Awaiting names</span></td>
+                <td>No marketing department or designation exists on the system.</td></tr>
           </tbody>
         </table>
       </div>
-      <p><strong>Free Missing Checkouts Per Month</strong> gives an allowance before anything is charged &mdash; the gentlest way to make the rule corrective rather than punitive.</p>
-    </div>
 
-    <h3>Safety Limits</h3>
-    <p>These stop any rule taking more than a month can pay. Anything they hold back is <strong>shown on the preview report</strong>, never silently dropped.</p>
-    <div class="tw">
-      <table>
-        <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
-        <tbody>
-          <tr><td>Cap Penalty Days At Payable Days</td><td>On</td><td>Nobody loses more days than they were paid for</td></tr>
-          <tr><td>Maximum Penalty Days Per Month</td><td>0 (off)</td><td>A further hard ceiling</td></tr>
-          <tr><td>Never Allow a Negative Net Salary</td><td>On</td><td>Net pay floors at zero</td></tr>
-          <tr><td>Maximum Total Deduction (% of Gross)</td><td>0 (off)</td><td>Caps all deductions combined</td></tr>
-        </tbody>
-      </table>
-    </div>
+      <div class="note">
+        <p class="label">Nothing here pays anybody yet</p>
+        <p>Every salary figure in this guide comes from the <b>Payroll Computation Preview</b>, which is a
+          dry run. It does not create or change a single salary slip. You can change any setting, re-run it,
+          and see the effect before committing to anything.</p>
+      </div>
+    </section>
 
-    <h3>Overtime</h3>
-    <p>Hourly rate = <strong>Base &divide; 31 &divide; 8</strong>. Both divisors are editable, but 31 and 8 is the agreed basis &mdash; a 12-hour driver and an 8-hour office worker earn the same hourly OT rate.</p>
-    <p><strong>Pay an Extra Day for Working the Weekly Off</strong> adds one day&rsquo;s salary when someone works their weekly off (Sunday by default). This is separate from OT hours, so the two never double-count.</p>
+    <section id="changed">
+      <h2><span class="num">01</span> What changed</h2>
+      <p>Ten reports, three forms and one settings page. They are all on the Home screen, grouped
+        under three headings. The desk is also grey now.</p>
 
-    <h3>Daily Wage Defaults</h3>
-    <p>&#8377;300 per day, &#8377;400 on the weekly off. Used for employees whose <strong>Wage Type</strong> is <code>Daily Wage</code> and who have no rate of their own.</p>
-  </section>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/home.jpg" alt="The Home screen. The three <b>Inlite HR</b> groups are the new material &mdash; settings and forms, daily reports, and monthly &amp; payroll." loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/home.jpg" target="_blank" rel="noopener">View full size &rarr;</a>The Home screen. The three <b>Inlite HR</b> groups are the new material &mdash; settings and forms, daily reports, and monthly &amp; payroll.</figcaption>
+      </figure>
 
-  <section id="s4">
-    <h2><span class="num">04</span> Daily-wage employees</h2>
-    <p>On the <strong>Employee</strong> form, in the <strong>Wage Type</strong> section:</p>
-    <ol>
-      <li>Set <strong>Wage Type</strong> to <code>Daily Wage</code></li>
-      <li>Set <strong>Daily Wage Rate</strong> and <strong>Weekly-Off Wage Rate</strong> (or leave blank to use the settings defaults)</li>
-    </ol>
-    <p>Daily-wage employees are paid per day worked and receive <strong>no casual leave</strong>.</p>
-    <div class="danger">
-      <span class="label">Not yet done</span>
-      <p>All employees currently default to <code>Monthly</code>. The Chelambra factory daily-wagers must be set to <code>Daily Wage</code>, or they will be paid as salaried staff.</p>
-    </div>
-  </section>
 
-  <section id="s5">
-    <h2><span class="num">05</span> The three new forms</h2>
+      <p>You can also open anything by name: press <code>Ctrl + G</code> (or <code>&#8984; + G</code>),
+        type the name, press Enter.</p>
 
-    <h3>Late Entry Early Exit Request</h3>
-    <p>Use this to <strong>excuse</strong> a late arrival or early departure. An approved request replaces the flat &#8377;100 fine for that day with an hourly deduction instead.</p>
-    <ol>
-      <li>New &rarr; pick <strong>Employee</strong>, <strong>Date</strong>, <strong>Request Type</strong></li>
-      <li>Enter the <strong>Reason</strong> (required)</li>
-      <li>Save &mdash; the system reads the real minutes from that day&rsquo;s attendance</li>
-      <li>Set <strong>Status</strong> to <code>Approved</code> or <code>Rejected</code>, then <strong>Submit</strong></li>
-    </ol>
-    <div class="note">
-      <p>The minutes are re-read from attendance every time you save. You cannot excuse more time than the employee actually missed.</p>
-    </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>You want to&hellip;</th><th>Go to</th></tr></thead>
+          <tbody>
+            <tr><td>See today&rsquo;s leave requests</td><td class="mono">Daily Leave Request Report</td></tr>
+            <tr><td>See who came in late</td><td class="mono">Late Entry Detail Report</td></tr>
+            <tr><td>See who left early</td><td class="mono">Early Exit Detail Report</td></tr>
+            <tr><td>See who forgot to check out</td><td class="mono">Previous Day Checkout Not Marked Report</td></tr>
+            <tr><td>See the whole month on one page</td><td class="mono">Monthly Attendance Sheet Detail</td></tr>
+            <tr><td>Check leave balances</td><td class="mono">Leave Balance Report</td></tr>
+            <tr><td>See break patterns</td><td class="mono">Break Marking Report</td></tr>
+            <tr><td>Plan tomorrow&rsquo;s cover</td><td class="mono">Tomorrow Leave List</td></tr>
+            <tr><td>Track advances</td><td class="mono">Advance Payment Request Report</td></tr>
+            <tr><td>Check what payroll would pay</td><td class="mono">Payroll Computation Preview</td></tr>
+            <tr><td>Excuse a late arrival</td><td class="mono">Late Entry Early Exit Request</td></tr>
+            <tr><td>Record money owed by staff</td><td class="mono">Employee Arrear</td></tr>
+            <tr><td>Record overtime</td><td class="mono">Overtime Data</td></tr>
+            <tr><td>Change any rule or amount</td><td class="mono">Enfono HR Settings</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
-    <h3>Employee Arrear</h3>
-    <p>Money the employee owes, recovered over several months.</p>
-    <div class="tw">
-      <table>
-        <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
-        <tbody>
-          <tr><td>Outstanding Amount</td><td>Total to recover</td></tr>
-          <tr><td>Monthly Deduction Amount</td><td>Taken from each payslip</td></tr>
-          <tr><td>Deduction Start / End Month</td><td>Any date inside the first / last month</td></tr>
-          <tr><td>Additional Deduction Amount</td><td>One-off extra, taken in the first month only</td></tr>
-          <tr><td>Comments / Remarks</td><td>Free text</td></tr>
-        </tbody>
-      </table>
-    </div>
-    <p><strong>Total Deducted</strong> and <strong>Balance Amount</strong> are maintained by payroll. Do not edit them by hand &mdash; that is how the same money gets recovered twice.</p>
-    <p>If the monthly amount will not clear the balance by the end month, the form warns you when you save.</p>
+    <section id="reports">
+      <h2><span class="num">02</span> The reports</h2>
+      <p>Every report shares the same four filters &mdash; <b>Employee</b>, <b>Branch</b>,
+        <b>Department</b>, <b>Designation</b>. Leave them blank to see everything you have access to.
+        Any report can be exported to Excel or PDF from the <b>&hellip;</b> menu at the top right.</p>
 
-    <h3>Overtime Data</h3>
-    <ol>
-      <li>New &rarr; <strong>Employee</strong>, <strong>Date</strong>, <strong>OT Total Hours</strong></li>
-      <li>Save &mdash; the rate and amount are calculated for you</li>
-      <li>Set <strong>Overtime Status</strong> to <code>Approved</code> or <code>Rejected</code>, then <strong>Submit</strong></li>
-    </ol>
-    <p>Only <strong>submitted and approved</strong> overtime is paid. The <strong>Worked on Sunday</strong> tick is set automatically and earns the extra day separately.</p>
-  </section>
+      <div class="note">
+        <p class="label">Branch scoping</p>
+        <p>If you are not an HR Manager or System Manager, reports show only your own branch unless you
+          pick a different one. HR Managers see all branches by default.</p>
+      </div>
 
-  <section id="s6">
-    <h2><span class="num">06</span> Payroll Computation Preview</h2>
-    <p><kbd>Ctrl</kbd> + <kbd>G</kbd> &rarr; <strong>Payroll Computation Preview</strong></p>
-    <p>This shows what payroll <strong>would</strong> produce for a month &mdash; gross, loss of pay, fines, penalties, overtime, advance, ESI, arrears and net &mdash; <strong>without creating or changing a single salary slip.</strong></p>
-    <p>The banner at the top restates the rules currently in force, so the numbers are never read out of context.</p>
+      <div class="note">
+        <p class="label">Names are blurred in this guide only</p>
+        <p>The screenshots below have employee names, IDs and pay columns deliberately obscured, because
+          this guide's images are readable by anyone who can reach the address. On the real screens
+          everything is fully visible to whoever has permission.</p>
+      </div>
 
-    <h3>Columns to check first</h3>
-    <div class="tw">
-      <table>
-        <thead><tr><th>Column</th><th>Why</th></tr></thead>
-        <tbody>
-          <tr><td>Penalty Days (Raw) vs Penalty Days</td><td>Different values mean a cap was applied</td></tr>
-          <tr><td>Capped</td><td>Ticked when the safety limits held something back</td></tr>
-          <tr><td>Excess Deduction</td><td>Money the rules asked for that the month could not pay</td></tr>
-          <tr><td>Net Salary</td><td>Any row at &#8377;0 needs a human decision</td></tr>
-          <tr><td>Chargeable Checkouts</td><td>Missing check-outs left after the free allowance</td></tr>
-        </tbody>
-      </table>
-    </div>
+      <h3>Daily Leave Request Report</h3>
+      <p>Leave requests as they were submitted. <b>Reported Date &amp; Time</b> is when the request landed
+        in the tray &mdash; not the date being asked for. Defaults to today.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-daily-leave.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-daily-leave.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Daily Leave Request Report. Note <b>From Date</b> and <b>To Date</b> are the leave being requested; the reported time is when it was filed.</figcaption>
+      </figure>
 
-    <h3>How to use it before a payroll run</h3>
-    <ol>
-      <li>Pick the month and run it</li>
-      <li>Sort by <strong>Net Salary</strong>, lowest first &mdash; investigate anything at or near zero</li>
-      <li>Sort by <strong>Fine Total</strong>, highest first &mdash; check the top few against the Late Entry and Previous Day Checkout reports</li>
-      <li>Compare the <strong>Total Net Salary</strong> summary against what you expect to pay</li>
-      <li>If the totals look wrong, adjust <strong>Enfono HR Settings</strong> and run it again</li>
-    </ol>
-    <div class="note">
-      <p><strong>Nothing here is written to a salary slip yet.</strong> Wiring these figures into payroll is a separate, deliberate step that happens only after a month has been reconciled and signed off.</p>
-    </div>
-  </section>
 
-  <section id="s7">
-    <h2><span class="num">07</span> Things to know</h2>
+      <h3>Late Entry Detail Report</h3>
+      <p>Anyone who arrived more than the grace period after their shift start.</p>
+      <ul>
+        <li><b>Grace Period (Minutes)</b> filter &mdash; defaults to 15. Change it to see what a different
+          rule would catch, <em>without</em> changing the rule itself.</li>
+        <li><b>Working Hours</b> column &mdash; added on purpose. If a row shows a huge lateness but almost
+          no working hours, that is a check-in app mis-tap, not a real day. Check it before acting on it.</li>
+      </ul>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-late-entry.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-late-entry.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Late Entry Detail Report. The three figures across the top summarise the whole filtered range &mdash; occurrences, people affected, and total minutes.</figcaption>
+      </figure>
 
-    <h3>Automatic 23:00 check-out</h3>
-    <p>Employees who forget to check out get a system checkout at 23:00 so they are not wrongly marked Absent. Those rows are flagged and excluded from early-exit and break reporting &mdash; but they still count as a missing checkout for penalty purposes, which is the point.</p>
 
-    <h3>Mis-taps in the check-in app</h3>
-    <p>Some employees tap twice and produce a day with almost no working hours. The <strong>Minimum Working Hours To Fine</strong> setting stops those being fined. When a report looks wrong, check the Working Hours column first.</p>
+      <h3>Early Exit Detail Report</h3>
+      <p>The mirror image, measured against shift end. Overnight shifts (8PM&ndash;8AM) are handled
+        correctly. Check-outs created automatically at 23:00 by the system are excluded &mdash; those are
+        not real early exits.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-early-exit.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-early-exit.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Early Exit Detail Report, showing <b>Shift End Time</b> against the actual <b>Exit Time</b>.</figcaption>
+      </figure>
 
-    <h3>Shift grace changed from 60 to 15 minutes</h3>
-    <p>You will see noticeably more late-entry flags than before. This is the rule working as specified, not a malfunction.</p>
 
-    <h3>Total Days is now the full calendar month</h3>
-    <p>30 or 31 days, including Sundays, as the payroll formula requires.</p>
-  </section>
+      <h3>Previous Day Checkout Not Marked Report</h3>
+      <p>Defaults to yesterday, which is how you should run it &mdash; first thing each morning.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Reason</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">No Check-out Logged</td><td>Nothing was recorded at all</td></tr>
+            <tr><td class="mono">Auto Check-Out Applied</td><td>The system stamped a 23:00 check-out to stop them being marked Absent</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Both mean the employee did not check out. The <b>Half Day Requested</b> column shows whether they
+        filed a half-day leave &mdash; which is the difference between a penalty and no penalty.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-missing-checkout.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-missing-checkout.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Previous Day Checkout Not Marked. <b>Covered by Auto Check-Out</b> counts the ones the system papered over; <b>With Half Day Request</b> counts the ones that cost nothing.</figcaption>
+      </figure>
 
-  <section id="s8">
-    <h2><span class="num">08</span> Getting help</h2>
-    <p>Report anything that looks wrong to Enfono support with:</p>
-    <ul>
-      <li>The report or form name</li>
-      <li>The exact filters you used</li>
-      <li>The employee ID and date</li>
-      <li>A screenshot</li>
-    </ul>
-    <div class="danger">
-      <p>Please do <strong>not</strong> change Enfono HR Settings to work around a problem before reporting it &mdash; the setting may not be the cause, and the change affects everyone.</p>
-    </div>
-  </section>
 
-  <footer>
-    Inlite HR Handbook &middot; version 1.0 &middot; 28 August 2026 &middot; prepared by Enfono Technologies
-  </footer>
+      <h3>Monthly Attendance Sheet Detail</h3>
+      <p>One row per employee, one column per day.</p>
+      <p><span class="mono">P</span> Present &middot; <span class="mono">A</span> Absent &middot;
+         <span class="mono">H</span> Half Day &middot; <span class="mono">L</span> On Leave &middot;
+         <span class="mono">W</span> Work From Home &middot; <span class="mono">O</span> Holiday &middot;
+         blank = nothing marked</p>
+      <p>A blank cell is worth looking at: <b>unmarked days are treated as Absent by payroll.</b></p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-month-sheet.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-month-sheet.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Monthly Attendance Sheet Detail. Scroll sideways for the rest of the month; the totals across the top cover the whole filtered set.</figcaption>
+      </figure>
 
-</div>
+
+      <h3>Leave Balance Report</h3>
+      <p>Opening balance, allocated, carried forward, taken, expired, closing &mdash; per employee per leave
+        type. Defaults to the current year.</p>
+      <p>This uses the same calculation as ERPNext&rsquo;s own leave balance, so it will always agree with
+        what an employee sees. It replaces the four older balance reports.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-leave-balance.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-leave-balance.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Leave Balance Report. One row per employee per leave type.</figcaption>
+      </figure>
+
+
+      <h3>Break Marking Report</h3>
+      <p>Breaks are worked out from check-out / check-in pairs during the day &mdash; the system has no
+        separate &ldquo;break&rdquo; button.</p>
+      <ul>
+        <li><b>Minimum Break (Minutes)</b> &mdash; ignores accidental double taps. Default 1.</li>
+        <li><b>Maximum Break (Minutes)</b> &mdash; default 240. Someone who checks out at 09:00 and back in
+          at 18:00 did not take a nine-hour break; that is absence.</li>
+      </ul>
+      <div class="note">
+        <p class="label">Limitation worth knowing</p>
+        <p>An employee who never logs out for lunch shows no break. This report reflects logging discipline,
+          not actual behaviour.</p>
+      </div>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-break-marking.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-break-marking.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Break Marking Report, with the minimum and maximum break filters at the top left.</figcaption>
+      </figure>
+
+
+      <h3>Tomorrow Leave List</h3>
+      <p>Who is off tomorrow, grouped by branch. Tick <b>Include Pending Approval</b> to also see requests
+        that have not been approved yet.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-tomorrow-leave.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-tomorrow-leave.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Tomorrow Leave List &mdash; run it at the end of the day to plan cover.</figcaption>
+      </figure>
+
+
+      <h3>Advance Payment Request Report</h3>
+      <p>All advances with their outstanding balance. The <b>Approval Route</b> column shows
+        <span class="mono">Standard</span> or <span class="mono">Driver &amp; Marketing</span> &mdash; set
+        automatically from the employee&rsquo;s designation.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-advance.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-advance.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Advance Payment Request Report, showing paid, claimed and outstanding amounts per advance.</figcaption>
+      </figure>
+
+    </section>
+
+    <section id="settings">
+      <h2><span class="num">03</span> Enfono HR Settings &mdash; where the rules live</h2>
+      <p><code>Ctrl + G</code> &rarr; <span class="mono">Enfono HR Settings</span></p>
+
+      <div class="note">
+        <p class="label">The habit to build</p>
+        <p>This page decides what everyone gets paid. After any change, run the
+          <b>Payroll Computation Preview</b> for a full month and check the totals before the next payroll
+          run. There is a button on the settings page that takes you straight there.</p>
+      </div>
+
+      <h3>Late Entry &amp; Early Exit Fines</h3>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>Grace Period (Minutes)</td><td class="mono">15</td><td>Minutes allowed before a day counts</td></tr>
+            <tr><td>Free Occurrence Days Per Month</td><td class="mono">3</td><td>Free days before any fine</td></tr>
+            <tr><td>Fine Per Occurrence Day</td><td class="mono">&#8377;100</td><td>Charged per day beyond the free allowance</td></tr>
+            <tr><td>Minimum Working Hours To Fine</td><td class="mono">0.25</td><td>Days shorter than this are treated as mis-taps and never fined</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A day counts <b>once</b> even if the employee was both late and left early.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/set-fines.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/set-fines.jpg" target="_blank" rel="noopener">View full size &rarr;</a>The fines section. Every field carries its own explanation underneath it on the form.</figcaption>
+      </figure>
+
+
+      <h3>Attendance Penalties</h3>
+      <p>These are charged <em>on top of</em> the pay ERPNext already deducts for an absent or half day.
+        Each of the three kinds can be set three ways: <b>Days of Salary</b>, <b>Fixed Amount</b>, or
+        <b>None</b>.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Kind</th><th>Default</th><th>ERPNext already deducts</th><th>So the default adds</th></tr></thead>
+          <tbody>
+            <tr><td>Unapproved full-day absence</td><td class="mono">1 day</td><td>1 day</td><td>a second day (double, per spec)</td></tr>
+            <tr><td>Unapproved / rejected half day</td><td class="mono">0.5 day</td><td>0.5 day</td><td>the other half</td></tr>
+            <tr><td>Checkout not marked</td><td class="mono">1 day</td><td>nothing</td><td>a full day</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="danger">
+        <p class="label">Read this before setting the missing-checkout penalty</p>
+        <p>In July 2026, <b>51 of 56 employees</b> missed at least one check-out. It is a logging habit,
+          not 51 disciplinary cases.</p>
+        <p>Charging one full day per occurrence removes about a third of total payroll and takes two
+          employees to zero pay. Measured on real data:</p>
+        <div class="tw">
+          <table>
+            <thead><tr><th>Setting</th><th>Total penalties</th><th>Share of gross</th><th>Staff paid &#8377;0</th></tr></thead>
+            <tbody>
+              <tr><td>1 full day each <b>(current)</b></td><td class="mono">&#8377;286,032</td><td class="mono">32.0%</td><td class="mono">2</td></tr>
+              <tr><td>&#8377;100 fixed, 2 free per month</td><td class="mono">&#8377;184,889</td><td class="mono">20.7%</td><td class="mono">0</td></tr>
+              <tr><td>Switched off</td><td class="mono">&#8377;176,089</td><td class="mono">19.7%</td><td class="mono">0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p><b>Free Missing Checkouts Per Month</b> gives an allowance before anything is charged &mdash; the
+          gentlest way to make the rule corrective rather than punitive.</p>
+      </div>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/set-penalties.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/set-penalties.jpg" target="_blank" rel="noopener">View full size &rarr;</a>The penalties section, with the safety limits directly below it. The warning text about missing check-outs is on the form itself, where the decision is actually made.</figcaption>
+      </figure>
+
+
+      <h3>Safety Limits</h3>
+      <p>These stop any rule taking more than a month can pay. Anything they hold back is shown on the
+        preview report, never silently dropped.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Setting</th><th>Default</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td>Cap Penalty Days At Payable Days</td><td class="mono">On</td><td>Nobody loses more days than they were paid for</td></tr>
+            <tr><td>Maximum Penalty Days Per Month</td><td class="mono">0 (off)</td><td>A further hard ceiling</td></tr>
+            <tr><td>Never Allow a Negative Net Salary</td><td class="mono">On</td><td>Net pay floors at zero</td></tr>
+            <tr><td>Maximum Total Deduction (% of Gross)</td><td class="mono">0 (off)</td><td>Caps all deductions combined</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Overtime</h3>
+      <p>Hourly rate = <b>Base &divide; 31 &divide; 8</b>. Both divisors are editable, but 31 and 8 is the
+        agreed basis &mdash; a 12-hour driver and an 8-hour office worker earn the same hourly OT rate.</p>
+      <p><b>Pay an Extra Day for Working the Weekly Off</b> adds one day&rsquo;s salary when someone works
+        their weekly off (Sunday by default). This is separate from OT hours, so the two never
+        double-count.</p>
+
+      <h3>Daily Wage Defaults</h3>
+      <p>&#8377;300 per day, &#8377;400 on the weekly off. Used for employees whose <b>Wage Type</b> is
+        <span class="mono">Daily Wage</span> and who have no rate of their own.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/set-overtime.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/set-overtime.jpg" target="_blank" rel="noopener">View full size &rarr;</a>The overtime and daily-wage sections at the bottom of the settings page.</figcaption>
+      </figure>
+
+    </section>
+
+    <section id="daily-wage">
+      <h2><span class="num">04</span> Daily-wage employees</h2>
+      <p>On the <b>Employee</b> form, in the Wage Type section:</p>
+      <ol>
+        <li>Set <b>Wage Type</b> to <span class="mono">Daily Wage</span></li>
+        <li>Set <b>Daily Wage Rate</b> and <b>Weekly-Off Wage Rate</b> (or leave blank to use the settings defaults)</li>
+      </ol>
+      <p>Daily-wage employees are paid per day worked and receive no casual leave.</p>
+      <div class="danger">
+        <p class="label">Not yet done</p>
+        <p>All employees currently default to <span class="mono">Monthly</span>. The Chelambra factory
+          daily-wagers must be set to <span class="mono">Daily Wage</span>, or they will be paid as
+          salaried staff.</p>
+      </div>
+    </section>
+
+    <section id="forms">
+      <h2><span class="num">05</span> The three new forms</h2>
+
+      <h3>Late Entry Early Exit Request</h3>
+      <p>Use this to excuse a late arrival or early departure. An approved request replaces the flat
+        &#8377;100 fine for that day with an hourly deduction instead.</p>
+      <ol>
+        <li><b>New</b> &rarr; pick Employee, Date, Request Type</li>
+        <li>Enter the <b>Reason</b> (required)</li>
+        <li><b>Save</b> &mdash; the system reads the real minutes from that day&rsquo;s attendance</li>
+        <li>Set <b>Status</b> to Approved or Rejected, then <b>Submit</b></li>
+      </ol>
+      <div class="note">
+        <p>The minutes are re-read from attendance every time you save. <b>You cannot excuse more time than
+          the employee actually missed.</b></p>
+      </div>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/form-late-request.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/form-late-request.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Late Entry Early Exit Request. <b>Minutes</b> is filled in by the system from attendance &mdash; it is not typed by hand.</figcaption>
+      </figure>
+
+
+      <h3>Employee Arrear</h3>
+      <p>Money the employee owes, recovered over several months.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Field</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td>Outstanding Amount</td><td>Total to recover</td></tr>
+            <tr><td>Monthly Deduction Amount</td><td>Taken from each payslip</td></tr>
+            <tr><td>Deduction Start / End Month</td><td>Any date inside the first / last month</td></tr>
+            <tr><td>Additional Deduction Amount</td><td>One-off extra, taken in the first month only</td></tr>
+            <tr><td>Comments / Remarks</td><td>Free text</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><b>Total Deducted</b> and <b>Balance Amount</b> are maintained by payroll. Do not edit them by hand
+        &mdash; that is how the same money gets recovered twice.</p>
+      <p>If the monthly amount will not clear the balance by the end month, the form warns you when you save.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/form-arrear.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/form-arrear.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Employee Arrear. The recovery schedule and the running balance are kept by the system.</figcaption>
+      </figure>
+
+
+      <h3>Overtime Data</h3>
+      <ol>
+        <li><b>New</b> &rarr; Employee, Date, OT Total Hours</li>
+        <li><b>Save</b> &mdash; the rate and amount are calculated for you</li>
+        <li>Set <b>Overtime Status</b> to Approved or Rejected, then <b>Submit</b></li>
+      </ol>
+      <p>Only submitted <em>and</em> approved overtime is paid. The <b>Worked on Sunday</b> tick is set
+        automatically and earns the extra day separately.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/form-overtime.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/form-overtime.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Overtime Data. You record hours; the system prices them.</figcaption>
+      </figure>
+
+    </section>
+
+    <section id="preview">
+      <h2><span class="num">06</span> Payroll Computation Preview</h2>
+      <p><code>Ctrl + G</code> &rarr; <span class="mono">Payroll Computation Preview</span></p>
+      <p>This shows what payroll <em>would</em> produce for a month &mdash; gross, loss of pay, fines,
+        penalties, overtime, advance, ESI, arrears and net &mdash; without creating or changing a single
+        salary slip.</p>
+      <p>The banner at the top restates the rules currently in force, so the numbers are never read out of
+        context.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-payroll.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-payroll.jpg" target="_blank" rel="noopener">View full size &rarr;</a>Payroll Computation Preview. The banner states the rules in force; the strip below gives the month's totals. Pay columns are blurred in this guide only.</figcaption>
+      </figure>
+
+
+      <h3>Reading a row</h3>
+      <p>The report reads left to right as a story: what the employee earns, how many days they worked,
+        what was charged and why, and what is left. Every deduction can be traced back to the attendance
+        behind it, which means a disputed figure can be answered from the screen rather than argued about.</p>
+      <figure class="shot">
+        <img src="/assets/enfono_hr/images/handbook/rpt-payroll-penalties.jpg" alt="Screenshot" loading="lazy">
+        <figcaption><a class="zoom" href="/assets/enfono_hr/images/handbook/rpt-payroll-penalties.jpg" target="_blank" rel="noopener">View full size &rarr;</a>The same report scrolled right, into the penalty columns &mdash; occurrence days, free days used, fined days, then the missing check-out columns.</figcaption>
+      </figure>
+
+
+      <h3>Columns to check first</h3>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Column</th><th>Why</th></tr></thead>
+          <tbody>
+            <tr><td>Penalty Days (Raw) vs Penalty Days</td><td>Different values mean a cap was applied</td></tr>
+            <tr><td>Capped</td><td>Ticked when the safety limits held something back</td></tr>
+            <tr><td>Excess Deduction</td><td>Money the rules asked for that the month could not pay</td></tr>
+            <tr><td>Net Salary</td><td>Any row at &#8377;0 needs a human decision</td></tr>
+            <tr><td>Chargeable Checkouts</td><td>Missing check-outs left after the free allowance</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>How to use it before a payroll run</h3>
+      <ol>
+        <li>Pick the month and run it</li>
+        <li>Sort by <b>Net Salary</b>, lowest first &mdash; investigate anything at or near zero</li>
+        <li>Check <b>Excess Deduction</b> for anyone the safety limits caught</li>
+        <li>Where a figure looks wrong, fix the <em>attendance</em> behind it rather than the setting</li>
+        <li>Re-run, and only then process payroll</li>
+      </ol>
+      <div class="note">
+        <p>If a whole column of figures looks wrong, that is a settings problem. If one person's figure
+          looks wrong, that is an attendance problem. Fixing a setting to solve one person's row will
+          quietly change everybody else's.</p>
+      </div>
+    </section>
+
+    <section id="gotchas">
+      <h2><span class="num">07</span> Things to know</h2>
+
+      <h3>Automatic 23:00 check-out</h3>
+      <p>A scheduled job stamps a check-out at 23:00 for anyone who checked in but never checked out. It
+        exists to stop those employees being marked Absent, and it is still running.</p>
+      <p>Every automatic check-out is now tagged as automatic, so the reports and payroll can tell it apart
+        from a real one. Before this was fixed, the <b>Previous Day Checkout Not Marked</b> report could
+        never show anything at all &mdash; the evidence was erased each night before anyone saw it.</p>
+
+      <h3>Mis-taps in the check-in app</h3>
+      <p>A double tap on the check-in machine can create a day with a huge apparent lateness and almost no
+        working hours. The <b>Working Hours</b> column on the late and early reports is there to catch
+        these. <b>Minimum Working Hours To Fine</b> in settings stops them being fined automatically.</p>
+
+      <h3>Shift grace changed from 60 to 15 minutes</h3>
+      <p>Shifts previously allowed 60 minutes before marking anyone late. That is now 15, per the
+        requirement. Historic attendance was <em>not</em> re-marked, so figures before the change reflect
+        the old rule.</p>
+
+      <h3>Total Days is now the full calendar month</h3>
+      <p>30 or 31 days depending on the month, not working days. This matters when comparing to older
+        manual calculations.</p>
+
+      <h3>Unmarked days count as Absent</h3>
+      <p>A blank cell on the monthly sheet is not neutral &mdash; payroll treats it as an absence. Check the
+        monthly sheet for blanks before running payroll.</p>
+    </section>
+
+    <section id="help">
+      <h2><span class="num">08</span> Getting help</h2>
+      <p>There are six short training videos, about two minutes each, covering the day-to-day work rather
+        than the screens in the abstract. Ask your HR team for the links.</p>
+      <div class="tw">
+        <table>
+          <thead><tr><th>#</th><th>Video</th><th>Length</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1</td><td>Finding Out What Happened Yesterday</td><td class="mono">2:27</td></tr>
+            <tr><td class="mono">2</td><td>Chasing a Missing Checkout</td><td class="mono">1:49</td></tr>
+            <tr><td class="mono">3</td><td>Changing an HR Rule</td><td class="mono">2:59</td></tr>
+            <tr><td class="mono">4</td><td>Checking Payroll Before It Pays</td><td class="mono">2:25</td></tr>
+            <tr><td class="mono">5</td><td>Excusing a Late Arrival</td><td class="mono">1:52</td></tr>
+            <tr><td class="mono">6</td><td>Overtime, and Money Owed</td><td class="mono">2:09</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>If something looks wrong</h3>
+      <ol>
+        <li>Check the filters first &mdash; most &ldquo;missing data&rdquo; is a date range.</li>
+        <li>Check the <b>Working Hours</b> column before acting on any late or early row.</li>
+        <li>For a pay figure, open the Payroll Computation Preview and read the row across before changing
+          anything.</li>
+        <li>Never change a setting to fix one person's number.</li>
+      </ol>
+      <p>For anything this guide does not answer, contact Enfono Technologies at
+        <a href="mailto:sayanth@enfono.com">sayanth@enfono.com</a>.</p>
+    </section>
+
+    </main>
+  </div>
 </div>
 {% endblock %}
