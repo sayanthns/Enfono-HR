@@ -16,7 +16,12 @@ app_license = "mit"
 # include js, css files in header of web template
 # web_include_css = "/assets/enfono_hr/css/enfono_hr.css"
 # web_include_js = "/assets/enfono_hr/js/enfono_hr.js"
-web_include_js = "/assets/enfono_hr/js/test_login.js"
+# 🔴 Do NOT re-register test_login.js here. web_include_js loads on EVERY
+# website page, and that file unconditionally rewrote the first <h1> on the
+# page to "Custom Login Page" — which defaced the HR Handbook at /hr-handbook
+# and every other portal page, while the served HTML was perfectly correct.
+# A client-side rewrite like that is invisible to curl and to the server logs.
+# web_include_js = "/assets/enfono_hr/js/enfono_hr.js"
 
 # include custom scss in every website theme (without file extension ".scss")
 # website_theme_scss = "enfono_hr/public/scss/website"
