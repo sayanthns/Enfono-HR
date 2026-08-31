@@ -24,7 +24,17 @@ from frappe.custom.doctype.custom_field.custom_field import create_custom_fields
 #: Designations whose advances follow the separate approval route.
 #: "Marketing" does not exist as a designation on this site yet; it is listed so
 #: the routing works the day it is created, rather than needing a code change.
-SEPARATE_ROUTE_DESIGNATIONS = ["Driver/Helper", "Driver", "Marketing Executive", "Marketing"]
+# The client's HRMS FEEDBACK (Aug 2026) settled who "the marketing team" are:
+# Area Sales Officers. The speculative "Marketing Executive" / "Marketing"
+# entries are kept — they cost nothing and cover a future rename — but
+# "Area Sales Officer" is the one that actually matches employees today (6 of them).
+SEPARATE_ROUTE_DESIGNATIONS = [
+	"Driver/Helper",
+	"Driver",
+	"Area Sales Officer",
+	"Marketing Executive",
+	"Marketing",
+]
 
 GRACE_MINUTES = 15
 

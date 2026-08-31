@@ -8,3 +8,4 @@ enfono_hr.patches.v1_0.add_auto_checkout_flag
 enfono_hr.patches.v1_0.setup_payroll_rules
 enfono_hr.patches.v1_0.seed_hr_settings
 enfono_hr.patches.v1_0.add_home_workspace_shortcuts
+enfono_hr.patches.v1_0.apply_hrms_feedback
