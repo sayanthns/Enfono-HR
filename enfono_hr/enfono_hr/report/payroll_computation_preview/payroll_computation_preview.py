@@ -107,6 +107,7 @@ def get_columns():
 		col("Branch", "branch", "Link", 150, "Branch"),
 		col("Wage Type", "wage_type", "Data", 100),
 		col("Base", "base", "Currency", 110),
+		*component_columns(col),
 		col("Total Days", "total_days", "Int", 90),
 		col("Present", "present_days", "Float", 85),
 		col("Half Day", "half_days", "Float", 85),
@@ -144,6 +145,30 @@ def get_columns():
 	]
 
 
+
+def component_columns(col):
+	"""One Currency column per earning component defined on any active structure.
+
+	Takes ``col`` because that builder is a closure inside get_columns(); calling
+	it from module scope raised NameError on the first run.
+
+	🔴 Derived, not listed. Hardcoding Basic / DA / HRA / CA / Other would go
+	stale the moment a structure gains a component, and a column that silently
+	stops existing is how a payroll question becomes a support ticket.
+	"""
+	names = frappe.db.sql_list(
+		"""
+		SELECT DISTINCT sd.salary_component
+		FROM `tabSalary Detail` sd
+		INNER JOIN `tabSalary Structure` ss ON ss.name = sd.parent
+		WHERE sd.parenttype = 'Salary Structure'
+			AND sd.parentfield = 'earnings'
+			AND ss.is_active = 'Yes'
+		ORDER BY sd.idx
+		"""
+	)
+	return [col(name, f"component_{frappe.scrub(name)}", "Currency", 115) for name in names]
+
 def get_employees(filters):
 	emp_conditions, params = employee_conditions(filters)
 
@@ -177,6 +202,11 @@ def get_data(filters, year, month):
 	for employee in employees:
 		row = compute_employee_payroll(employee, year, month)
 		row.pop("daily_wage_detail", None)
+
+		# Flatten the component dict onto the row under the same fieldnames
+		# component_columns() declared, so each lands in its own column.
+		for component, value in (row.pop("salary_components", None) or {}).items():
+			row[f"component_{frappe.scrub(component)}"] = value
 
 		if not cint(filters.get("show_zero_rows")) and not row["base"] and not row["gross_salary"]:
 			continue

@@ -2,7 +2,30 @@
 // For license information, please see license.txt
 
 frappe.query_reports["Late Entry Detail Report"] = {
+	// 🔴 `on_date` is a CONVENIENCE, not a third date. Picking it writes the same
+	// day into from_date and to_date, because the client runs this report for one
+	// day almost every time and setting two fields for that is two clicks too many.
+	// The range filters stay, so a span is still possible — clearing on_date
+	// leaves them alone.
+	onload(report) {
+		report.page.add_inner_button(__("Today"), () => {
+			const today = frappe.datetime.get_today();
+			report.set_filter_value({ on_date: today, from_date: today, to_date: today });
+		});
+	},
+
 	filters: [
+		{
+			fieldname: "on_date",
+			label: __("Date"),
+			fieldtype: "Date",
+			default: frappe.datetime.get_today(),
+			on_change(report) {
+				const day = report.get_filter_value("on_date");
+				if (!day) return;   // cleared — leave the range as the user set it
+				report.set_filter_value({ from_date: day, to_date: day });
+			},
+		},
 		{
 			fieldname: "from_date",
 			label: __("From Date"),

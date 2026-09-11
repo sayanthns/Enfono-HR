@@ -38,6 +38,9 @@ frappe.query_reports["Tomorrow Leave List"] = {
 			fieldname: "include_pending",
 			label: __("Include Pending Approval"),
 			fieldtype: "Check",
+			// The client asked for tomorrow's list to show approved AND pending
+			// without anyone having to tick anything. Untick it to see approved only.
+			default: 1,
 		},
 		{
 			fieldname: "include_inactive",

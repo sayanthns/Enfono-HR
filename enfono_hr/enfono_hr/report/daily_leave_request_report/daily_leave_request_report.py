@@ -2,7 +2,10 @@
 # For license information, please see license.txt
 """Leave requests as they were reported, for a day or a date range.
 
-"Reported Date & Time" is the moment the request was raised (``creation``),
+"Leave Applied Date" is the moment the request was raised (``creation``),
+renamed from "Reported Date & Time" at the client's request — same value,
+their wording. It is the date the employee FILED the leave, never the date
+being asked for; those are From Date and To Date.
 not the date being asked for — that is the point of the report: HR wants to see
 what landed in the tray today.
 """
@@ -34,7 +37,13 @@ def get_columns():
 		{"label": _("Leave Reason"), "fieldname": "leave_reason", "fieldtype": "Data", "width": 260},
 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 100},
 		{
-			"label": _("Reported Date & Time"),
+			"label": _("Substitute"),
+			"fieldname": "custom_substitute_employee_name",
+			"fieldtype": "Data",
+			"width": 150,
+		},
+		{
+			"label": _("Leave Applied Date"),
 			"fieldname": "reported_on",
 			"fieldtype": "Datetime",
 			"width": 180,
@@ -84,6 +93,13 @@ def get_data(filters):
 		leave_type_condition = "AND la.leave_type = %(leave_type)s"
 		params["leave_type"] = filters.get("leave_type")
 
+	# Probed, not assumed: the substitute field arrives with a patch, and this
+	# report must still run on a site where that patch has not been applied.
+	substitute_select = (
+		"la.custom_substitute_employee_name"
+		if frappe.db.has_column("Leave Application", "custom_substitute_employee_name")
+		else "NULL"
+	)
 	workflow_state_select = (
 		"la.workflow_state" if has_workflow_state() else "NULL"
 	)
@@ -104,6 +120,7 @@ def get_data(filters):
 			la.description          AS leave_reason,
 			la.status               AS status,
 			{workflow_state_select} AS workflow_state,
+			{substitute_select}     AS custom_substitute_employee_name,
 			la.creation             AS reported_on,
 			la.name                 AS leave_application
 		FROM `tabLeave Application` la

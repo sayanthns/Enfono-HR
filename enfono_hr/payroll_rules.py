@@ -197,6 +197,59 @@ def get_monthly_base_salary(employee: str, on_date) -> float:
 	return flt(base)
 
 
+
+def get_salary_components(employee: str, on_date, base: float) -> dict:
+	"""Split the base into the components the salary structure actually defines.
+
+	Requirement 9 of the Sept 2026 list — "Basic salary is currently not
+	displaying in the payroll" — was accurate: the structure defines Basic as
+	``base * .3`` along with DA, HRA, CA and Other, but nothing surfaced the
+	split, so HR only ever saw `base` and `gross`.
+
+	🔴 Percentages are read from the assigned Salary Structure, never hardcoded.
+	Inlite's split happens to be 30/25/20/15/10 today, but a second structure or
+	a revision would silently make a hardcoded copy wrong, and wrong on a payslip
+	is worse than absent.
+
+	Formulas are evaluated with ``frappe.safe_eval`` against ``base`` only, which
+	is how ERPNext's own salary engine resolves them. A row that is a flat amount
+	rather than a formula is taken at its amount. Anything that fails to evaluate
+	is skipped and logged rather than guessed at — a missing column is obvious,
+	a fabricated figure is not.
+	"""
+	structure = frappe.db.get_value(
+		"Salary Structure Assignment",
+		{"employee": employee, "docstatus": 1, "from_date": ["<=", getdate(on_date)]},
+		"salary_structure",
+		order_by="from_date desc",
+	)
+	if not structure or not base:
+		return {}
+
+	rows = frappe.get_all(
+		"Salary Detail",
+		filters={"parent": structure, "parentfield": "earnings", "parenttype": "Salary Structure"},
+		fields=["salary_component", "formula", "amount", "amount_based_on_formula"],
+		order_by="idx",
+	)
+
+	components: dict[str, float] = {}
+	for row in rows:
+		if cint(row.amount_based_on_formula) and row.formula:
+			try:
+				value = frappe.safe_eval(row.formula, None, {"base": flt(base)})
+			except Exception:
+				frappe.log_error(
+					f"Could not evaluate {row.salary_component!r} formula {row.formula!r} "
+					f"for {employee}",
+					"Payroll Computation Preview",
+				)
+				continue
+		else:
+			value = flt(row.amount)
+		components[row.salary_component] = flt(value, 2)
+
+	return components
 def hourly_rate_from_base(base: float, settings=None) -> float:
 	"""Hourly rate. Divisors come from settings; the agreed basis is 31 and 8."""
 	settings = settings or get_settings()
@@ -813,6 +866,8 @@ def compute_employee_payroll(employee_doc: dict, year: int, month: int) -> dict:
 		"branch": employee_doc.get("branch"),
 		"wage_type": "Daily Wage" if daily_wage else "Monthly",
 		"base": flt(base, 2),
+		# Requirement 9: the component split, so Basic is visible where HR reads it.
+		"salary_components": get_salary_components(employee, end, base),
 		"total_days": total_days,
 		"present_days": flt(counts["present"], 1),
 		"half_days": flt(counts["half_day"], 1),
