@@ -18,9 +18,11 @@ reports this work supersedes; retiring those is a separate decision for the
 client, not something a patch should do behind their back.
 """
 
+import html
 import json
 
 import frappe
+from frappe.utils import cstr
 
 WORKSPACE = "Home"
 
@@ -42,6 +44,7 @@ DAILY_REPORTS = [
 
 PAYROLL_REPORTS = [
 	("Report", "Monthly Attendance Sheet Detail", "Monthly Attendance Sheet Detail", "Green", "Attendance"),
+	("Report", "Monthly Attendance Register", "Monthly Attendance Register", "Green", "Attendance"),
 	("Report", "Leave Balance Report", "Leave Balance Report", "Green", "Employee"),
 	("Report", "Break Marking Report", "Break Marking Report", "Green", "Employee Checkin"),
 	("Report", "Advance Payment Request Report", "Advance Payment Request Report", "Green", "Employee Advance"),
@@ -63,6 +66,10 @@ def execute():
 	doc = frappe.get_doc("Workspace", WORKSPACE)
 	existing_labels = {s.label for s in doc.shortcuts}
 	content = json.loads(doc.content or "[]")
+
+	repaired = _dedupe_headings(content)
+	if repaired:
+		frappe.logger().info(f"enfono_hr: merged {repaired} duplicated workspace heading(s)")
 	blocked_labels = {
 		b.get("data", {}).get("shortcut_name")
 		for b in content
@@ -77,8 +84,20 @@ def execute():
 		if not missing:
 			continue
 
-		content.append(_block("spacer", {"col": 12}))
-		content.append(_block("paragraph", {"text": f"<b>{heading}</b>", "col": 12}))
+		# 🔴 If this heading is ALREADY on the page, add the missing shortcuts to
+		# it rather than writing a second copy of the heading.
+		#
+		# The first cut appended unconditionally. That was invisible on a fresh
+		# site — every section was new — and only showed itself when a later
+		# patch added one more report to an existing section: the Home page then
+		# carried "Inlite HR — Monthly & Payroll" twice, the second one holding a
+		# single orphaned shortcut. Caught on camera while filming the route to
+		# it, which is the one place a client is guaranteed to look.
+		at = _section_end(content, heading)
+		if at is None:
+			content.append(_block("spacer", {"col": 12}))
+			content.append(_block("paragraph", {"text": f"<b>{heading}</b>", "col": 12}))
+			at = len(content)
 
 		for stype, link_to, label, colour, ref_doctype in items:
 			if not _target_exists(stype, link_to):
@@ -107,7 +126,8 @@ def execute():
 				added_rows += 1
 
 			if label not in blocked_labels:
-				content.append(_block("shortcut", {"shortcut_name": label, "col": 3}))
+				content.insert(at, _block("shortcut", {"shortcut_name": label, "col": 3}))
+				at += 1
 				blocked_labels.add(label)
 				added_blocks += 1
 
@@ -124,6 +144,85 @@ def execute():
 
 def _block(block_type, data):
 	return {"id": frappe.generate_hash(length=10), "type": block_type, "data": data}
+
+
+def _norm(text):
+	"""Compare headings by what they RENDER as, not by how they were written.
+
+	🔴 This function is the whole reason a second "Inlite HR — Monthly & Payroll"
+	appeared on two sites. The headings here are written with `&mdash;`, but
+	Frappe stores the block with that entity already decoded to an em dash while
+	leaving `&amp;` alone. A literal `==` against the source string therefore
+	never matched what was on the page, the section looked absent, and a fresh
+	copy of the heading was appended below the real one.
+	"""
+	return html.unescape(html.unescape(cstr(text))).strip()
+
+
+def _dedupe_headings(content):
+	"""Merge any duplicate section heading back into the first one.
+
+	Repairs the damage the entity-matching bug already did on live sites: moves
+	the orphaned shortcuts up under the original heading and removes the second
+	copy along with the spacer that preceded it. Returns the number merged.
+	"""
+	merged = 0
+	seen = {}
+	i = 0
+	while i < len(content):
+		block = content[i]
+		if block.get("type") != "paragraph":
+			i += 1
+			continue
+
+		key = _norm(block.get("data", {}).get("text"))
+		if key not in seen:
+			seen[key] = i
+			i += 1
+			continue
+
+		end = i + 1
+		while end < len(content) and content[end].get("type") == "shortcut":
+			end += 1
+		orphans = content[i + 1 : end]
+
+		start = i - 1 if i > 0 and content[i - 1].get("type") == "spacer" else i
+		del content[start:end]
+
+		at = seen[key] + 1
+		while at < len(content) and content[at].get("type") == "shortcut":
+			at += 1
+		content[at:at] = orphans
+
+		merged += 1
+		seen = {}
+		i = 0
+	return merged
+
+
+def _section_end(content, heading):
+	"""Index just past the last shortcut block belonging to `heading`.
+
+	Returns None when the heading is not on the page yet, which is the signal to
+	lay a fresh one down. Walking forward from the heading and stopping at the
+	next paragraph or spacer keeps a section's shortcuts together even after
+	somebody has rearranged the page around them.
+	"""
+	needle = _norm(f"<b>{heading}</b>")
+	start = None
+	for i, block in enumerate(content):
+		if block.get("type") == "paragraph" and _norm(block.get("data", {}).get("text")) == needle:
+			start = i
+			break
+	if start is None:
+		return None
+
+	end = start + 1
+	for block in content[start + 1 :]:
+		if block.get("type") != "shortcut":
+			break
+		end += 1
+	return end
 
 
 def _target_exists(stype, link_to):
